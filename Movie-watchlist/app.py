@@ -35,23 +35,40 @@ def home():
 def search():
     query = request.args.get("q")
     media_type = request.args.get("type", "movie")
-    
-    endpoint = "movie" if media_type == "movie" else "tv"
-    response = requests.get(
-        f"https://api.themoviedb.org/3/search/{endpoint}",
-        params={"api_key": API_KEY, "query": query}
-    )
-    results = response.json().get("results", [])
-    media = [
-        {
-            "tmdb_id": m["id"],
-            "title": m.get("title") or m.get("name"),
-            "poster": f"https://image.tmdb.org/t/p/w200{m['poster_path']}" if m.get("poster_path") else None,
-            "year": (m.get("release_date") or m.get("first_air_date") or "")[:4],
-            "media_type": media_type
-        }
-        for m in results[:8]
-    ]
+
+    if media_type == "anime":
+        response = requests.get(
+            "https://api.jikan.moe/v4/anime",
+            params={"q": query, "limit": 8}
+        )
+        results = response.json().get("data", [])
+        media = [
+            {
+                "tmdb_id": m["mal_id"],
+                "title": m["title"],
+                "poster": m["images"]["jpg"]["image_url"] if m.get("images") else None,
+                "year": str(m.get("year") or ""),
+                "media_type": "anime"
+            }
+            for m in results
+        ]
+    else:
+        endpoint = "movie" if media_type == "movie" else "tv"
+        response = requests.get(
+            f"https://api.themoviedb.org/3/search/{endpoint}",
+            params={"api_key": API_KEY, "query": query}
+        )
+        results = response.json().get("results", [])
+        media = [
+            {
+                "tmdb_id": m["id"],
+                "title": m.get("title") or m.get("name"),
+                "poster": f"https://image.tmdb.org/t/p/w200{m['poster_path']}" if m.get("poster_path") else None,
+                "year": (m.get("release_date") or m.get("first_air_date") or "")[:4],
+                "media_type": media_type
+            }
+            for m in results[:8]
+        ]
     return jsonify(media)
     
 @app.route("/add", methods=["POST"])

@@ -29,9 +29,10 @@
     <h1>🎬 Media Watchlist</h1>
 
     <div class="toggle">
-        <button class="active" id="btn-movie" onclick="setType('movie')">Movies</button>
-        <button id="btn-tv" onclick="setType('tv')">TV Shows</button>
-    </div>
+    <button class="active" id="btn-movie" onclick="setType('movie')">Movies</button>
+    <button id="btn-tv" onclick="setType('tv')">TV Shows</button>
+    <button id="btn-anime" onclick="setType('anime')">Anime</button>
+</div>
 
     <div class="search-bar">
         <input type="text" id="search-input" placeholder="Search...">
@@ -44,12 +45,14 @@
         let currentType = "movie";
 
         function setType(type) {
-            currentType = type;
-            document.getElementById("btn-movie").classList.toggle("active", type === "movie");
-            document.getElementById("btn-tv").classList.toggle("active", type === "tv");
-            document.getElementById("results").innerHTML = "";
-            document.getElementById("search-input").placeholder = type === "movie" ? "Search for a movie..." : "Search for a TV show...";
-        }
+    currentType = type;
+    document.getElementById("btn-movie").classList.toggle("active", type === "movie");
+    document.getElementById("btn-tv").classList.toggle("active", type === "tv");
+    document.getElementById("btn-anime").classList.toggle("active", type === "anime");
+    document.getElementById("results").innerHTML = "";
+    const placeholders = { movie: "Search for a movie...", tv: "Search for a TV show...", anime: "Search for an anime..." };
+    document.getElementById("search-input").placeholder = placeholders[type];
+}
 
         async function searchMedia() {
             const query = document.getElementById("search-input").value;

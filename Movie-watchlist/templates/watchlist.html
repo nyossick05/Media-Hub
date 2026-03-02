@@ -69,7 +69,7 @@
                 card.innerHTML = `
                     ${movie.poster ? `<img src="${movie.poster}" alt="${movie.title}">` : "🎬"}
                     <p><strong>${movie.title}</strong></p>
-                    <select id="status-${movie.id}">
+<p><span class="badge">${movie.media_type === "movie" ? "🎬 Movie" : movie.media_type === "tv" ? "📺 TV" : "⛩️ Anime"}</span></p>                    <select id="status-${movie.id}">
                         <option value="want_to_watch" ${movie.status === "want_to_watch" ? "selected" : ""}>Want to Watch</option>
                         <option value="watched" ${movie.status === "watched" ? "selected" : ""}>Watched</option>
                     </select>
