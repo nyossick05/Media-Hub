@@ -79,10 +79,10 @@ def add_movie():
     try:
         c.execute('''
             INSERT INTO movies (tmdb_id, title, poster_path, status, media_type)
-            VALUES (?, ?, ?, 'want_to_watch', ?)
+            VALUES (?, ?, ?, 'plan_to_watch', ?)
         ''', (data["tmdb_id"], data["title"], data["poster"], data["media_type"]))
         conn.commit()
-        result = {"success": True, "message": f"{data['title']} added to watchlist!"}
+        result = {"success": True, "message": f"{data['title']} added!"}
     except sqlite3.IntegrityError:
         result = {"success": False, "message": "Already in your watchlist!"}
     conn.close()
@@ -103,7 +103,8 @@ def watchlist():
             "poster": r[3],
             "status": r[4],
             "rating": r[5],
-            "review": r[6]
+            "review": r[6],
+            "media_type": r[7]
         }
         for r in rows
     ]

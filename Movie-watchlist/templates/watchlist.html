@@ -32,7 +32,6 @@
         <button class="active" onclick="filterMedia('all', this)">All</button>
         <button onclick="filterMedia('plan_to_watch', this)">Plan to Watch</button>
         <button onclick="filterMedia('watching', this)">Watching</button>
-        <button onclick="filterMedia('watched', this)">Watched</button>
         <button onclick="filterMedia('completed', this)">Completed</button>
         <button onclick="filterMedia('dropped', this)">Dropped</button>
     </div>
@@ -44,7 +43,7 @@
 
         const movieStatuses = [
             { value: "plan_to_watch", label: "Plan to Watch" },
-            { value: "watched", label: "Watched" }
+            { value: "completed", label: "Completed" }
         ];
 
         const tvAnimeStatuses = [
