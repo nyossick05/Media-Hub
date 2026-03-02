@@ -2,64 +2,89 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Movie Watchlist</title>
+    <title>Media Watchlist</title>
     <style>
         body { font-family: Arial, sans-serif; max-width: 800px; margin: 40px auto; padding: 0 20px; background: #111; color: #fff; }
         h1 { color: #e50914; }
-        input { padding: 10px; width: 70%; font-size: 16px; border-radius: 5px; border: none; }
+        nav a { color: #e50914; text-decoration: none; margin-right: 20px; font-size: 16px; }
+        .search-bar { margin-top: 20px; }
+        input { padding: 10px; width: 60%; font-size: 16px; border-radius: 5px; border: none; }
         button { padding: 10px 20px; background: #e50914; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 16px; }
+        .toggle { margin: 15px 0; }
+        .toggle button { background: #333; margin-right: 10px; }
+        .toggle button.active { background: #e50914; }
         .results { display: flex; flex-wrap: wrap; gap: 15px; margin-top: 20px; }
         .movie-card { background: #222; border-radius: 8px; padding: 10px; width: 140px; text-align: center; }
         .movie-card img { width: 120px; height: 180px; object-fit: cover; border-radius: 5px; }
         .movie-card p { font-size: 13px; margin: 5px 0; }
         .add-btn { background: #e50914; color: white; border: none; border-radius: 4px; padding: 5px 10px; cursor: pointer; margin-top: 5px; }
+        .badge { background: #333; font-size: 11px; padding: 2px 6px; border-radius: 10px; }
     </style>
 </head>
 <body>
-    <h1>🎬 Movie Watchlist</h1>
-    <input type="text" id="search-input" placeholder="Search for a movie...">
-    <button onclick="searchMovies()">Search</button>
+    <nav>
+        <a href="/">🔍 Search</a>
+        <a href="/watchlist-page">📋 My Watchlist</a>
+    </nav>
+    <h1>🎬 Media Watchlist</h1>
+
+    <div class="toggle">
+        <button class="active" id="btn-movie" onclick="setType('movie')">Movies</button>
+        <button id="btn-tv" onclick="setType('tv')">TV Shows</button>
+    </div>
+
+    <div class="search-bar">
+        <input type="text" id="search-input" placeholder="Search...">
+        <button onclick="searchMedia()">Search</button>
+    </div>
+
     <div class="results" id="results"></div>
 
     <script>
-        async function searchMovies() {
+        let currentType = "movie";
+
+        function setType(type) {
+            currentType = type;
+            document.getElementById("btn-movie").classList.toggle("active", type === "movie");
+            document.getElementById("btn-tv").classList.toggle("active", type === "tv");
+            document.getElementById("results").innerHTML = "";
+            document.getElementById("search-input").placeholder = type === "movie" ? "Search for a movie..." : "Search for a TV show...";
+        }
+
+        async function searchMedia() {
             const query = document.getElementById("search-input").value;
-            const response = await fetch(`/search?q=${query}`);
-            const movies = await response.json();
+            const response = await fetch(`/search?q=${query}&type=${currentType}`);
+            const items = await response.json();
 
             const container = document.getElementById("results");
             container.innerHTML = "";
 
-            movies.forEach(movie => {
+            items.forEach(item => {
                 const card = document.createElement("div");
                 card.className = "movie-card";
                 card.innerHTML = `
-                    ${movie.poster ? `<img src="${movie.poster}" alt="${movie.title}">` : "🎬"}
-                    <p><strong>${movie.title}</strong></p>
-                    <p>${movie.year}</p>
-                    <button class="add-btn" onclick="addMovie(${movie.tmdb_id}, '${movie.title.replace(/'/g, "\\'")}', '${movie.poster}')">+ Add</button>
+                    ${item.poster ? `<img src="${item.poster}" alt="${item.title}">` : "🎬"}
+                    <p><strong>${item.title}</strong></p>
+                    <p>${item.year} <span class="badge">${item.media_type === "movie" ? "Movie" : "TV"}</span></p>
+                    <button class="add-btn" onclick="addMedia(${item.tmdb_id}, '${item.title.replace(/'/g, "\\'")}', '${item.poster}', '${item.media_type}')">+ Add</button>
                 `;
                 container.appendChild(card);
             });
         }
 
-        async function addMovie(tmdb_id, title, poster) {
-    const response = await fetch("/add", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ tmdb_id, title, poster })
-    });
-    const result = await response.json();
-    alert(result.message);
-}
+        async function addMedia(tmdb_id, title, poster, media_type) {
+            const response = await fetch("/add", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ tmdb_id, title, poster, media_type })
+            });
+            const result = await response.json();
+            alert(result.message);
+        }
 
         document.getElementById("search-input").addEventListener("keypress", function(e) {
-            if (e.key === "Enter") searchMovies();
+            if (e.key === "Enter") searchMedia();
         });
     </script>
 </body>
-<nav>
-    <a href="/">🔍 Search</a>
-    <a href="/watchlist-page">📋 My Watchlist</a>
-</nav>
 </html>

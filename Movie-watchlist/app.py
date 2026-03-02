@@ -15,12 +15,13 @@ def init_db():
     c.execute('''
         CREATE TABLE IF NOT EXISTS movies (
             id INTEGER PRIMARY KEY,
-            tmdb_id INTEGER UNIQUE,
+            tmdb_id INTEGER,
             title TEXT,
             poster_path TEXT,
             status TEXT DEFAULT 'want_to_watch',
             rating INTEGER,
-            review TEXT
+            review TEXT,
+            media_type TEXT DEFAULT 'movie'
         )
     ''')
     conn.commit()
@@ -33,21 +34,25 @@ def home():
 @app.route("/search")
 def search():
     query = request.args.get("q")
+    media_type = request.args.get("type", "movie")
+    
+    endpoint = "movie" if media_type == "movie" else "tv"
     response = requests.get(
-        f"https://api.themoviedb.org/3/search/movie",
+        f"https://api.themoviedb.org/3/search/{endpoint}",
         params={"api_key": API_KEY, "query": query}
     )
     results = response.json().get("results", [])
-    movies = [
+    media = [
         {
             "tmdb_id": m["id"],
-            "title": m["title"],
+            "title": m.get("title") or m.get("name"),
             "poster": f"https://image.tmdb.org/t/p/w200{m['poster_path']}" if m.get("poster_path") else None,
-            "year": m.get("release_date", "")[:4]
+            "year": (m.get("release_date") or m.get("first_air_date") or "")[:4],
+            "media_type": media_type
         }
         for m in results[:8]
     ]
-    return jsonify(movies)
+    return jsonify(media)
     
 @app.route("/add", methods=["POST"])
 def add_movie():
@@ -56,13 +61,13 @@ def add_movie():
     c = conn.cursor()
     try:
         c.execute('''
-            INSERT INTO movies (tmdb_id, title, poster_path, status)
-            VALUES (?, ?, ?, 'want_to_watch')
-        ''', (data["tmdb_id"], data["title"], data["poster"]))
+            INSERT INTO movies (tmdb_id, title, poster_path, status, media_type)
+            VALUES (?, ?, ?, 'want_to_watch', ?)
+        ''', (data["tmdb_id"], data["title"], data["poster"], data["media_type"]))
         conn.commit()
         result = {"success": True, "message": f"{data['title']} added to watchlist!"}
     except sqlite3.IntegrityError:
-        result = {"success": False, "message": "Movie already in your watchlist!"}
+        result = {"success": False, "message": "Already in your watchlist!"}
     conn.close()
     return jsonify(result)
 
