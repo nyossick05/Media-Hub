@@ -8,12 +8,13 @@
         h1 { color: #e50914; }
         nav a { color: #e50914; text-decoration: none; margin-right: 20px; font-size: 16px; }
         .filters { margin: 20px 0; }
-        .filters button { padding: 8px 16px; margin-right: 10px; border: none; border-radius: 5px; cursor: pointer; background: #333; color: #fff; }
+        .filters button { padding: 8px 16px; margin-right: 10px; border: none; border-radius: 5px; cursor: pointer; background: #333; color: #fff; margin-bottom: 8px; }
         .filters button.active { background: #e50914; }
         .movies { display: flex; flex-wrap: wrap; gap: 20px; margin-top: 20px; }
         .movie-card { background: #222; border-radius: 8px; padding: 15px; width: 160px; text-align: center; }
         .movie-card img { width: 140px; height: 200px; object-fit: cover; border-radius: 5px; }
         .movie-card p { font-size: 13px; margin: 5px 0; }
+        .badge { background: #333; font-size: 11px; padding: 2px 6px; border-radius: 10px; }
         select, textarea, input[type=number] { width: 100%; margin-top: 5px; padding: 5px; background: #333; color: #fff; border: none; border-radius: 4px; font-size: 12px; }
         .save-btn { background: #e50914; color: white; border: none; border-radius: 4px; padding: 5px 10px; cursor: pointer; margin-top: 8px; width: 100%; }
         .delete-btn { background: #444; color: white; border: none; border-radius: 4px; padding: 5px 10px; cursor: pointer; margin-top: 5px; width: 100%; }
@@ -28,9 +29,12 @@
     <h1>My Watchlist</h1>
 
     <div class="filters">
-        <button class="active" onclick="filterMovies('all', this)">All</button>
-        <button onclick="filterMovies('want_to_watch', this)">Want to Watch</button>
-        <button onclick="filterMovies('watched', this)">Watched</button>
+        <button class="active" onclick="filterMedia('all', this)">All</button>
+        <button onclick="filterMedia('plan_to_watch', this)">Plan to Watch</button>
+        <button onclick="filterMedia('watching', this)">Watching</button>
+        <button onclick="filterMedia('watched', this)">Watched</button>
+        <button onclick="filterMedia('completed', this)">Completed</button>
+        <button onclick="filterMedia('dropped', this)">Dropped</button>
     </div>
 
     <div class="movies" id="movies-container"></div>
@@ -38,13 +42,25 @@
     <script>
         let allMovies = [];
 
+        const movieStatuses = [
+            { value: "plan_to_watch", label: "Plan to Watch" },
+            { value: "watched", label: "Watched" }
+        ];
+
+        const tvAnimeStatuses = [
+            { value: "plan_to_watch", label: "Plan to Watch" },
+            { value: "watching", label: "Watching" },
+            { value: "completed", label: "Completed" },
+            { value: "dropped", label: "Dropped" }
+        ];
+
         async function loadWatchlist() {
             const response = await fetch("/watchlist");
             allMovies = await response.json();
             renderMovies(allMovies);
         }
 
-        function filterMovies(status, btn) {
+        function filterMedia(status, btn) {
             document.querySelectorAll(".filters button").forEach(b => b.classList.remove("active"));
             btn.classList.add("active");
             if (status === "all") {
@@ -64,15 +80,18 @@
             }
 
             movies.forEach(movie => {
+                const statuses = movie.media_type === "movie" ? movieStatuses : tvAnimeStatuses;
+                const statusOptions = statuses.map(s =>
+                    `<option value="${s.value}" ${movie.status === s.value ? "selected" : ""}>${s.label}</option>`
+                ).join("");
+
                 const card = document.createElement("div");
                 card.className = "movie-card";
                 card.innerHTML = `
                     ${movie.poster ? `<img src="${movie.poster}" alt="${movie.title}">` : "🎬"}
                     <p><strong>${movie.title}</strong></p>
-<p><span class="badge">${movie.media_type === "movie" ? "🎬 Movie" : movie.media_type === "tv" ? "📺 TV" : "⛩️ Anime"}</span></p>                    <select id="status-${movie.id}">
-                        <option value="want_to_watch" ${movie.status === "want_to_watch" ? "selected" : ""}>Want to Watch</option>
-                        <option value="watched" ${movie.status === "watched" ? "selected" : ""}>Watched</option>
-                    </select>
+                    <p><span class="badge">${movie.media_type === "movie" ? "🎬 Movie" : movie.media_type === "tv" ? "📺 TV" : "⛩️ Anime"}</span></p>
+                    <select id="status-${movie.id}">${statusOptions}</select>
                     <input type="number" id="rating-${movie.id}" min="1" max="10" placeholder="Rating /10" value="${movie.rating || ""}">
                     <textarea id="review-${movie.id}" placeholder="Your review..." rows="3">${movie.review || ""}</textarea>
                     <button class="save-btn" onclick="updateMovie(${movie.id})">Save</button>
