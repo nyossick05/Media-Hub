@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Media Hub</title>
+    <title>Discover — Media Hub</title>
     <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
     <style>
         :root {
@@ -24,9 +24,14 @@
             background: var(--bg);
             color: var(--text);
             min-height: 100vh;
+            animation: pageFadeIn 0.3s ease forwards;
         }
 
-        /* Ambient background */
+        @keyframes pageFadeIn {
+            from { opacity: 0; transform: translateY(8px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
         body::before {
             content: '';
             position: fixed;
@@ -97,14 +102,47 @@
         .page-subtitle {
             color: var(--muted);
             font-size: 14px;
-            margin-bottom: 40px;
+            margin-bottom: 30px;
         }
 
-        /* Toggle */
+        /* Mode tabs */
+        .mode-tabs {
+            display: flex;
+            gap: 4px;
+            margin-bottom: 24px;
+            background: var(--surface);
+            padding: 5px;
+            border-radius: 12px;
+            width: fit-content;
+            border: 1px solid var(--border);
+        }
+
+        .mode-tab {
+            padding: 8px 22px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-family: 'DM Sans', sans-serif;
+            font-size: 13px;
+            font-weight: 500;
+            background: transparent;
+            color: var(--muted);
+            transition: all 0.2s;
+        }
+
+        .mode-tab.active {
+            background: var(--purple);
+            color: white;
+            box-shadow: 0 0 20px var(--purple-glow);
+        }
+
+        /* Search section */
+        #search-section { }
+
         .toggle {
             display: flex;
             gap: 8px;
-            margin-bottom: 30px;
+            margin-bottom: 20px;
             background: var(--surface);
             padding: 5px;
             border-radius: 12px;
@@ -131,11 +169,10 @@
             box-shadow: 0 0 20px var(--purple-glow);
         }
 
-        /* Search bar */
         .search-bar {
             display: flex;
             gap: 10px;
-            margin-bottom: 40px;
+            margin-bottom: 30px;
         }
 
         .search-bar input {
@@ -178,11 +215,44 @@
             transform: translateY(-1px);
         }
 
+        /* Trending section */
+        #trending-section { display: none; }
+
+        .trending-toggle {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 24px;
+            background: var(--surface);
+            padding: 5px;
+            border-radius: 12px;
+            width: fit-content;
+            border: 1px solid var(--border);
+        }
+
+        .trending-toggle button {
+            padding: 8px 22px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-family: 'DM Sans', sans-serif;
+            font-size: 13px;
+            font-weight: 500;
+            background: transparent;
+            color: var(--muted);
+            transition: all 0.2s;
+        }
+
+        .trending-toggle button.active {
+            background: var(--purple);
+            color: white;
+            box-shadow: 0 0 20px var(--purple-glow);
+        }
+
         /* Results grid */
         .results {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
-            gap: 20px;
+            grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+            gap: 18px;
         }
 
         .movie-card {
@@ -191,7 +261,13 @@
             overflow: hidden;
             border: 1px solid var(--border);
             transition: all 0.25s;
-            cursor: pointer;
+            opacity: 0;
+            animation: cardPop 0.3s ease forwards;
+        }
+
+        @keyframes cardPop {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
         }
 
         .movie-card:hover {
@@ -200,12 +276,21 @@
             box-shadow: 0 10px 40px rgba(124, 58, 237, 0.2);
         }
 
-        .movie-card img {
-            width: 100%;
+        .card-poster-wrap {
+            position: relative;
             aspect-ratio: 2/3;
+            overflow: hidden;
+        }
+
+        .card-poster-wrap img {
+            width: 100%;
+            height: 100%;
             object-fit: cover;
             display: block;
+            transition: transform 0.3s ease;
         }
+
+        .movie-card:hover .card-poster-wrap img { transform: scale(1.04); }
 
         .movie-card-no-poster {
             width: 100%;
@@ -217,9 +302,7 @@
             font-size: 40px;
         }
 
-        .card-info {
-            padding: 10px 12px 12px;
-        }
+        .card-info { padding: 10px 12px 12px; }
 
         .card-info p {
             font-size: 12px;
@@ -231,10 +314,13 @@
             text-overflow: ellipsis;
         }
 
-        .card-year {
+        .card-meta {
             color: var(--muted);
             font-size: 11px !important;
             margin-bottom: 8px !important;
+            display: flex;
+            align-items: center;
+            gap: 6px;
         }
 
         .badge {
@@ -245,7 +331,6 @@
             background: var(--surface2);
             color: var(--muted);
             border: 1px solid var(--border);
-            margin-bottom: 8px;
         }
 
         .add-btn {
@@ -260,13 +345,13 @@
             font-size: 12px;
             font-weight: 600;
             transition: all 0.2s;
+            margin-top: 6px;
         }
 
-        .add-btn:hover {
-            background: var(--purple-light);
-        }
+        .add-btn:hover { background: var(--purple-light); }
 
         .empty-state {
+            grid-column: 1 / -1;
             text-align: center;
             padding: 80px 20px;
             color: var(--muted);
@@ -274,60 +359,60 @@
 
         .empty-state .icon { font-size: 48px; margin-bottom: 16px; }
         .empty-state p { font-size: 16px; }
-        /* Page transitions */
-body {
-    animation: pageFadeIn 0.3s ease forwards;
-}
 
-@keyframes pageFadeIn {
-    from { opacity: 0; transform: translateY(8px); }
-    to { opacity: 1; transform: translateY(0); }
-}
-
-.movie-card, .stat-card, .section {
-    opacity: 0;
-    animation: cardPop 0.3s ease forwards;
-}
-
-.movie-card:nth-child(1), .stat-card:nth-child(1) { animation-delay: 0.05s; }
-.movie-card:nth-child(2), .stat-card:nth-child(2) { animation-delay: 0.1s; }
-.movie-card:nth-child(3), .stat-card:nth-child(3) { animation-delay: 0.15s; }
-.movie-card:nth-child(4), .stat-card:nth-child(4) { animation-delay: 0.2s; }
-.movie-card:nth-child(5), .stat-card:nth-child(5) { animation-delay: 0.25s; }
-.movie-card:nth-child(6), .stat-card:nth-child(6) { animation-delay: 0.3s; }
-.section:nth-child(1) { animation-delay: 0.1s; }
-.section:nth-child(2) { animation-delay: 0.2s; }
-.section:nth-child(3) { animation-delay: 0.3s; }
-.section:nth-child(4) { animation-delay: 0.4s; }
-
-@keyframes cardPop {
-    from { opacity: 0; transform: translateY(12px); }
-    to { opacity: 1; transform: translateY(0); }
-}
+        .trending-rank {
+            position: absolute;
+            top: 8px;
+            left: 8px;
+            background: var(--purple);
+            color: white;
+            font-family: 'Bebas Neue', sans-serif;
+            font-size: 16px;
+            letter-spacing: 1px;
+            padding: 2px 8px;
+            border-radius: 6px;
+        }
     </style>
 </head>
 <body>
     <nav>
         <span class="nav-logo">MEDIA HUB</span>
         <a href="/">Home</a>
-        <a href="/discover">Search</a>
+        <a href="/discover" class="active">Discover</a>
         <a href="/watchlist-page">Watchlist</a>
         <a href="/stats">Stats</a>
     </nav>
 
     <div class="container">
-        <h1 class="page-title">DISCOVER</h1>
-        <p class="page-subtitle">Search for movies, TV shows and anime to add to your list</p>
+        <h1 class="page-title" id="page-title">DISCOVER</h1>
+        <p class="page-subtitle" id="page-subtitle">Search for movies, TV shows and anime</p>
 
-        <div class="toggle">
-            <button class="active" id="btn-movie" onclick="setType('movie')">🎬 Movies</button>
-            <button id="btn-tv" onclick="setType('tv')">📺 TV Shows</button>
-            <button id="btn-anime" onclick="setType('anime')">⛩️ Anime</button>
+        <!-- Mode tabs -->
+        <div class="mode-tabs">
+            <button class="mode-tab active" onclick="setMode('search')">🔍 Search</button>
+            <button class="mode-tab" onclick="setMode('trending')">🔥 Trending</button>
         </div>
 
-        <div class="search-bar">
-            <input type="text" id="search-input" placeholder="Search for a movie...">
-            <button class="btn-primary" onclick="searchMedia()">Search</button>
+        <!-- Search section -->
+        <div id="search-section">
+            <div class="toggle">
+                <button class="active" id="btn-movie" onclick="setType('movie')">🎬 Movies</button>
+                <button id="btn-tv" onclick="setType('tv')">📺 TV Shows</button>
+                <button id="btn-anime" onclick="setType('anime')">⛩️ Anime</button>
+            </div>
+            <div class="search-bar">
+                <input type="text" id="search-input" placeholder="Search for a movie...">
+                <button class="btn-primary" onclick="searchMedia()">Search</button>
+            </div>
+        </div>
+
+        <!-- Trending section -->
+        <div id="trending-section">
+            <div class="trending-toggle">
+                <button class="active" id="trend-movie" onclick="loadTrending('movie')">🎬 Movies</button>
+                <button id="trend-tv" onclick="loadTrending('tv')">📺 TV Shows</button>
+                <button id="trend-anime" onclick="loadTrending('anime')">⛩️ Anime</button>
+            </div>
         </div>
 
         <div class="results" id="results"></div>
@@ -335,6 +420,33 @@ body {
 
     <script>
         let currentType = "movie";
+        let currentMode = "search";
+        let currentTrendType = "movie";
+
+        function setMode(mode) {
+            currentMode = mode;
+            document.querySelectorAll(".mode-tab").forEach(t => t.classList.remove("active"));
+            event.target.classList.add("active");
+
+            const searchSection = document.getElementById("search-section");
+            const trendingSection = document.getElementById("trending-section");
+            const title = document.getElementById("page-title");
+            const subtitle = document.getElementById("page-subtitle");
+
+            if (mode === "search") {
+                searchSection.style.display = "block";
+                trendingSection.style.display = "none";
+                title.textContent = "DISCOVER";
+                subtitle.textContent = "Search for movies, TV shows and anime";
+                document.getElementById("results").innerHTML = "";
+            } else {
+                searchSection.style.display = "none";
+                trendingSection.style.display = "block";
+                title.textContent = "TRENDING";
+                subtitle.textContent = "What's popular this week";
+                loadTrending(currentTrendType);
+            }
+        }
 
         function setType(type) {
             currentType = type;
@@ -359,7 +471,25 @@ body {
 
             const response = await fetch(`/search?q=${query}&type=${currentType}`);
             const items = await response.json();
+            renderCards(items, false);
+        }
 
+        async function loadTrending(type) {
+            currentTrendType = type;
+            document.getElementById("trend-movie").classList.toggle("active", type === "movie");
+            document.getElementById("trend-tv").classList.toggle("active", type === "tv");
+            document.getElementById("trend-anime").classList.toggle("active", type === "anime");
+
+            const container = document.getElementById("results");
+            container.innerHTML = `<div class="empty-state"><div class="icon">⏳</div><p>Loading...</p></div>`;
+
+            const response = await fetch(`/api/trending/${type}`);
+            const items = await response.json();
+            renderCards(items, true);
+        }
+
+        function renderCards(items, showRank) {
+            const container = document.getElementById("results");
             container.innerHTML = "";
 
             if (items.length === 0) {
@@ -367,20 +497,25 @@ body {
                 return;
             }
 
-            items.forEach(item => {
+            items.forEach((item, i) => {
                 const card = document.createElement("div");
                 card.className = "movie-card";
+                card.style.animationDelay = `${i * 0.03}s`;
                 card.innerHTML = `
-                    <a href="/details?type=${item.media_type}&id=${item.tmdb_id}">
-    ${item.poster && item.poster !== 'None'
-        ? `<img src="${item.poster}" alt="${item.title}">`
-        : `<div class="movie-card-no-poster">🎬</div>`}
-</a>
-<div class="card-info">
-    <a href="/details?type=${item.media_type}&id=${item.tmdb_id}" style="text-decoration:none; color:inherit;">
-        <p title="${item.title}"><strong>${item.title}</strong></p>
-    </a>
-                        <p class="card-year">${item.year} · <span class="badge">${item.media_type === "movie" ? "Movie" : item.media_type === "tv" ? "TV" : "Anime"}</span></p>
+                    <a href="/details?type=${item.media_type}&id=${item.tmdb_id}" style="text-decoration:none;">
+                        <div class="card-poster-wrap">
+                            ${item.poster && item.poster !== 'None'
+                                ? `<img src="${item.poster}" alt="${item.title}">`
+                                : `<div class="movie-card-no-poster">🎬</div>`}
+                            ${showRank ? `<div class="trending-rank">#${i + 1}</div>` : ""}
+                        </div>
+                    </a>
+                    <div class="card-info">
+                        <p title="${item.title}"><strong>${item.title}</strong></p>
+                        <p class="card-meta">
+                            ${item.year ? item.year : ""}
+                            ${item.rating ? `⭐ ${item.rating}` : ""}
+                        </p>
                         <button class="add-btn" onclick="addMedia(${item.tmdb_id}, '${item.title.replace(/'/g, "\\'")}', '${item.poster}', '${item.media_type}')">+ Add</button>
                     </div>
                 `;

@@ -256,7 +256,44 @@ def home():
 @app.route("/discover")
 def search_page():
     return render_template("index.html")
-
+@app.route("/api/trending/<media_type>")
+def trending(media_type):
+    if media_type == "anime":
+        response = requests.get(
+            "https://api.jikan.moe/v4/top/anime",
+            params={"limit": 20}
+        )
+        results = response.json().get("data", [])
+        media = [
+            {
+                "tmdb_id": m["mal_id"],
+                "title": m["title"],
+                "poster": m["images"]["jpg"]["image_url"] if m.get("images") else None,
+                "year": str(m.get("year") or ""),
+                "rating": m.get("score"),
+                "media_type": "anime"
+            }
+            for m in results
+        ]
+    else:
+        endpoint = "movie" if media_type == "movie" else "tv"
+        response = requests.get(
+            f"https://api.themoviedb.org/3/trending/{endpoint}/week",
+            params={"api_key": API_KEY}
+        )
+        results = response.json().get("results", [])
+        media = [
+            {
+                "tmdb_id": m["id"],
+                "title": m.get("title") or m.get("name"),
+                "poster": f"https://image.tmdb.org/t/p/w300{m['poster_path']}" if m.get("poster_path") else None,
+                "year": (m.get("release_date") or m.get("first_air_date") or "")[:4],
+                "rating": round(m.get("vote_average", 0), 1),
+                "media_type": media_type
+            }
+            for m in results[:20]
+        ]
+    return jsonify(media)
     
 
 if __name__ == "__main__":

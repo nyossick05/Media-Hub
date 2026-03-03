@@ -24,6 +24,12 @@
             background: var(--bg);
             color: var(--text);
             min-height: 100vh;
+            animation: pageFadeIn 0.3s ease forwards;
+        }
+
+        @keyframes pageFadeIn {
+            from { opacity: 0; transform: translateY(8px); }
+            to { opacity: 1; transform: translateY(0); }
         }
 
         body::before {
@@ -78,20 +84,11 @@
         }
 
         .container {
-            max-width: 1100px;
+            max-width: 1200px;
             margin: 0 auto;
             padding: 50px 30px;
             position: relative;
             z-index: 1;
-        }
-
-        .page-header {
-            display: flex;
-            align-items: flex-end;
-            justify-content: space-between;
-            margin-bottom: 30px;
-            flex-wrap: wrap;
-            gap: 15px;
         }
 
         .page-title {
@@ -99,6 +96,7 @@
             font-size: 52px;
             letter-spacing: 3px;
             line-height: 1;
+            margin-bottom: 8px;
         }
 
         .search-bar {
@@ -140,7 +138,6 @@
 
         .filter-group { display: flex; flex-direction: column; gap: 8px; }
         .filter-label { font-size: 11px; font-weight: 600; color: var(--muted); letter-spacing: 1px; text-transform: uppercase; }
-
         .filter-btns { display: flex; flex-wrap: wrap; gap: 6px; }
 
         .filter-btns button {
@@ -180,120 +177,294 @@
             cursor: pointer;
         }
 
+        /* Compact grid */
         .movies-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
-            gap: 20px;
+            grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+            gap: 14px;
         }
 
         .movie-card {
             background: var(--surface);
-            border-radius: 12px;
+            border-radius: 10px;
             overflow: hidden;
             border: 1px solid var(--border);
-            transition: all 0.25s;
+            transition: all 0.2s;
+            cursor: pointer;
+            opacity: 0;
+            animation: cardPop 0.3s ease forwards;
+        }
+
+        @keyframes cardPop {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
         }
 
         .movie-card:hover {
-            transform: translateY(-5px);
+            transform: translateY(-4px);
             border-color: var(--purple);
-            box-shadow: 0 10px 40px rgba(124, 58, 237, 0.2);
+            box-shadow: 0 8px 30px rgba(124, 58, 237, 0.2);
         }
 
-        .movie-card img {
-            width: 100%;
+        .poster-wrap {
+            position: relative;
             aspect-ratio: 2/3;
+            overflow: hidden;
+        }
+
+        .poster-wrap img {
+            width: 100%;
+            height: 100%;
             object-fit: cover;
             display: block;
+            transition: transform 0.3s ease;
         }
 
-        .movie-card-no-poster {
+        .movie-card:hover .poster-wrap img { transform: scale(1.04); }
+
+        .poster-no-img {
             width: 100%;
-            aspect-ratio: 2/3;
+            height: 100%;
             background: var(--surface2);
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 40px;
+            font-size: 32px;
         }
 
-        .card-info { padding: 12px; }
+        /* Status strip */
+        .status-strip {
+            height: 3px;
+            width: 100%;
+        }
+
+        .status-watched { background: #22c55e; }
+        .status-completed { background: #22c55e; }
+        .status-watching { background: #3b82f6; }
+        .status-plan_to_watch { background: #f59e0b; }
+        .status-dropped { background: #ef4444; }
+
+        .card-info {
+            padding: 8px 10px 10px;
+        }
 
         .card-title {
-            font-size: 12px;
+            font-size: 11px;
             font-weight: 600;
-            margin-bottom: 6px;
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
+            margin-bottom: 6px;
         }
+
+        /* Star rating */
+        .stars {
+            display: flex;
+            gap: 2px;
+            margin-bottom: 4px;
+        }
+
+        .star {
+            font-size: 11px;
+            color: var(--border);
+            transition: color 0.1s;
+        }
+
+        .star.filled { color: #fbbf24; }
 
         .badge {
             display: inline-block;
-            font-size: 10px;
-            padding: 2px 8px;
+            font-size: 9px;
+            padding: 2px 7px;
             border-radius: 20px;
             background: var(--surface2);
             color: var(--muted);
             border: 1px solid var(--border);
+        }
+
+        /* Modal */
+        .modal-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.75);
+            z-index: 200;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            opacity: 0;
+            animation: fadeIn 0.2s ease forwards;
+        }
+
+        @keyframes fadeIn {
+            to { opacity: 1; }
+        }
+
+        .modal {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            width: 100%;
+            max-width: 420px;
+            overflow: hidden;
+            transform: translateY(20px);
+            animation: modalPop 0.25s ease forwards;
+        }
+
+        @keyframes modalPop {
+            to { transform: translateY(0); }
+        }
+
+        .modal-header {
+            display: flex;
+            gap: 16px;
+            padding: 20px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .modal-poster {
+            width: 70px;
+            min-width: 70px;
+            aspect-ratio: 2/3;
+            object-fit: cover;
+            border-radius: 8px;
+        }
+
+        .modal-poster-placeholder {
+            width: 70px;
+            min-width: 70px;
+            aspect-ratio: 2/3;
+            background: var(--surface2);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+        }
+
+        .modal-title {
+            font-family: 'Bebas Neue', sans-serif;
+            font-size: 22px;
+            letter-spacing: 1px;
+            margin-bottom: 6px;
+        }
+
+        .modal-badge {
+            font-size: 11px;
+            padding: 3px 10px;
+            border-radius: 20px;
+            background: var(--purple);
+            color: white;
+            display: inline-block;
             margin-bottom: 8px;
         }
 
-        .card-info select,
-        .card-info input,
-        .card-info textarea {
-            width: 100%;
+        .modal-body { padding: 20px; }
+
+        .modal-body label {
+            display: block;
+            font-size: 11px;
+            font-weight: 600;
+            color: var(--muted);
+            text-transform: uppercase;
+            letter-spacing: 1px;
             margin-bottom: 6px;
-            padding: 6px 10px;
+            margin-top: 14px;
+        }
+
+        .modal-body label:first-child { margin-top: 0; }
+
+        .modal-body select,
+        .modal-body textarea {
+            width: 100%;
+            padding: 10px 14px;
             background: var(--surface2);
             border: 1px solid var(--border);
-            border-radius: 7px;
+            border-radius: 9px;
             color: var(--text);
             font-family: 'DM Sans', sans-serif;
-            font-size: 11px;
+            font-size: 13px;
             outline: none;
             transition: border-color 0.2s;
         }
 
-        .card-info select:focus,
-        .card-info input:focus,
-        .card-info textarea:focus {
-            border-color: var(--purple);
+        .modal-body select:focus,
+        .modal-body textarea:focus { border-color: var(--purple); }
+
+        .modal-body textarea { resize: vertical; min-height: 80px; }
+
+        /* Modal star rating */
+        .modal-stars {
+            display: flex;
+            gap: 6px;
+            margin-bottom: 4px;
         }
 
-        .card-info textarea { resize: vertical; min-height: 55px; }
+        .modal-star {
+            font-size: 22px;
+            cursor: pointer;
+            color: var(--border);
+            transition: color 0.15s, transform 0.1s;
+        }
 
-        .save-btn {
-            width: 100%;
-            padding: 7px;
+        .modal-star:hover,
+        .modal-star.filled { color: #fbbf24; }
+
+        .modal-star:hover { transform: scale(1.2); }
+
+        .modal-footer {
+            display: flex;
+            gap: 10px;
+            padding: 16px 20px;
+            border-top: 1px solid var(--border);
+        }
+
+        .btn-save {
+            flex: 1;
+            padding: 11px;
             background: var(--purple);
             color: white;
             border: none;
-            border-radius: 7px;
+            border-radius: 9px;
             cursor: pointer;
             font-family: 'DM Sans', sans-serif;
-            font-size: 12px;
+            font-size: 13px;
             font-weight: 600;
-            margin-bottom: 5px;
             transition: all 0.2s;
         }
 
-        .save-btn:hover { background: var(--purple-light); }
+        .btn-save:hover { background: var(--purple-light); }
 
-        .delete-btn {
-            width: 100%;
-            padding: 7px;
+        .btn-delete {
+            padding: 11px 16px;
             background: transparent;
             color: var(--muted);
             border: 1px solid var(--border);
-            border-radius: 7px;
+            border-radius: 9px;
             cursor: pointer;
             font-family: 'DM Sans', sans-serif;
-            font-size: 12px;
+            font-size: 13px;
             transition: all 0.2s;
         }
 
-        .delete-btn:hover { border-color: #ef4444; color: #ef4444; }
+        .btn-delete:hover { border-color: #ef4444; color: #ef4444; }
+
+        .btn-details {
+            padding: 11px 16px;
+            background: transparent;
+            color: var(--muted);
+            border: 1px solid var(--border);
+            border-radius: 9px;
+            cursor: pointer;
+            font-family: 'DM Sans', sans-serif;
+            font-size: 13px;
+            text-decoration: none;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+        }
+
+        .btn-details:hover { border-color: var(--purple); color: var(--purple-light); }
 
         .empty-state {
             grid-column: 1 / -1;
@@ -304,36 +475,6 @@
 
         .empty-state .icon { font-size: 48px; margin-bottom: 16px; }
         .empty-state p { font-size: 16px; }
-        /* Page transitions */
-body {
-    animation: pageFadeIn 0.3s ease forwards;
-}
-
-@keyframes pageFadeIn {
-    from { opacity: 0; transform: translateY(8px); }
-    to { opacity: 1; transform: translateY(0); }
-}
-
-.movie-card, .stat-card, .section {
-    opacity: 0;
-    animation: cardPop 0.3s ease forwards;
-}
-
-.movie-card:nth-child(1), .stat-card:nth-child(1) { animation-delay: 0.05s; }
-.movie-card:nth-child(2), .stat-card:nth-child(2) { animation-delay: 0.1s; }
-.movie-card:nth-child(3), .stat-card:nth-child(3) { animation-delay: 0.15s; }
-.movie-card:nth-child(4), .stat-card:nth-child(4) { animation-delay: 0.2s; }
-.movie-card:nth-child(5), .stat-card:nth-child(5) { animation-delay: 0.25s; }
-.movie-card:nth-child(6), .stat-card:nth-child(6) { animation-delay: 0.3s; }
-.section:nth-child(1) { animation-delay: 0.1s; }
-.section:nth-child(2) { animation-delay: 0.2s; }
-.section:nth-child(3) { animation-delay: 0.3s; }
-.section:nth-child(4) { animation-delay: 0.4s; }
-
-@keyframes cardPop {
-    from { opacity: 0; transform: translateY(12px); }
-    to { opacity: 1; transform: translateY(0); }
-}
     </style>
 </head>
 <body>
@@ -341,14 +482,12 @@ body {
         <span class="nav-logo">MEDIA HUB</span>
         <a href="/">Home</a>
         <a href="/discover">Search</a>
-        <a href="/watchlist-page">Watchlist</a>
+        <a href="/watchlist-page" class="active">Watchlist</a>
         <a href="/stats">Stats</a>
     </nav>
 
     <div class="container">
-        <div class="page-header">
-            <h1 class="page-title">MY WATCHLIST</h1>
-        </div>
+        <h1 class="page-title">MY WATCHLIST</h1>
 
         <div class="search-bar">
             <input type="text" id="watchlist-search" placeholder="Search your watchlist..." oninput="applyFilters()">
@@ -390,10 +529,38 @@ body {
         <div class="movies-grid" id="movies-container"></div>
     </div>
 
+    <!-- Modal -->
+    <div id="modal-overlay" style="display:none;" onclick="closeModal(event)">
+        <div class="modal" id="modal">
+            <div class="modal-header">
+                <div id="modal-poster-container"></div>
+                <div>
+                    <div class="modal-title" id="modal-title"></div>
+                    <span class="modal-badge" id="modal-badge"></span>
+                </div>
+            </div>
+            <div class="modal-body">
+                <label>Status</label>
+                <select id="modal-status"></select>
+                <label>Your Rating</label>
+                <div class="modal-stars" id="modal-stars"></div>
+                <label>Review</label>
+                <textarea id="modal-review" placeholder="Write your review..."></textarea>
+            </div>
+            <div class="modal-footer">
+                <a href="#" id="modal-details-btn" class="btn-details">Info</a>
+                <button class="btn-delete" onclick="deleteMovie()">Remove</button>
+                <button class="btn-save" onclick="saveMovie()">Save</button>
+            </div>
+        </div>
+    </div>
+
     <script>
         let allMovies = [];
         let activeType = "all";
         let activeStatus = "all";
+        let currentMovie = null;
+        let currentRating = 0;
 
         const movieStatuses = [
             { value: "plan_to_watch", label: "Plan to Watch" },
@@ -406,6 +573,15 @@ body {
             { value: "completed", label: "Completed" },
             { value: "dropped", label: "Dropped" }
         ];
+
+        function starsHtml(rating, size = "small") {
+            let html = "";
+            for (let i = 1; i <= 5; i++) {
+                const filled = rating && i <= Math.round(rating / 2);
+                html += `<span class="star ${filled ? "filled" : ""}">★</span>`;
+            }
+            return html;
+        }
 
         async function loadWatchlist() {
             const response = await fetch("/watchlist");
@@ -435,7 +611,6 @@ body {
             if (activeType !== "all") filtered = filtered.filter(m => m.media_type === activeType);
             if (activeStatus !== "all") filtered = filtered.filter(m => m.status === activeStatus);
             if (query) filtered = filtered.filter(m => m.title.toLowerCase().includes(query));
-
             if (sort === "title") filtered.sort((a, b) => a.title.localeCompare(b.title));
             else if (sort === "rating") filtered.sort((a, b) => (b.rating || 0) - (a.rating || 0));
 
@@ -451,58 +626,105 @@ body {
                 return;
             }
 
-            movies.forEach(movie => {
-                const statuses = movie.media_type === "movie" ? movieStatuses : tvAnimeStatuses;
-                const statusOptions = statuses.map(s =>
-                    `<option value="${s.value}" ${movie.status === s.value ? "selected" : ""}>${s.label}</option>`
-                ).join("");
-
+            movies.forEach((movie, i) => {
                 const card = document.createElement("div");
                 card.className = "movie-card";
+                card.style.animationDelay = `${i * 0.04}s`;
+                card.onclick = () => openModal(movie);
                 card.innerHTML = `
-                    <a href="/details?type=${movie.media_type}&id=${movie.tmdb_id}">
-                        ${movie.poster && movie.poster !== 'None'
-                            ? `<img src="${movie.poster}" alt="${movie.title}">`
-                            : `<div class="movie-card-no-poster">🎬</div>`}
+                    <a href="/details?type=${movie.media_type}&id=${movie.tmdb_id}" onclick="event.stopPropagation()">
+                        <div class="poster-wrap">
+                            ${movie.poster && movie.poster !== 'None'
+                                ? `<img src="${movie.poster}" alt="${movie.title}">`
+                                : `<div class="poster-no-img">🎬</div>`}
+                        </div>
                     </a>
+                    <div class="status-strip status-${movie.status}"></div>
                     <div class="card-info">
-                        <a href="/details?type=${movie.media_type}&id=${movie.tmdb_id}" style="text-decoration:none; color:inherit;">
-                            <p class="card-title" title="${movie.title}">${movie.title}</p>
-                        </a>
-                        <span class="badge">${movie.media_type === "movie" ? "🎬 Movie" : movie.media_type === "tv" ? "📺 TV" : "⛩️ Anime"}</span>
-                        <select id="status-${movie.id}">${statusOptions}</select>
-                        <input type="number" id="rating-${movie.id}" min="1" max="10" placeholder="Rating /10" value="${movie.rating || ""}">
-                        <textarea id="review-${movie.id}" placeholder="Your review...">${movie.review || ""}</textarea>
-                        <button class="save-btn" onclick="updateMovie(${movie.id})">Save</button>
-                        <button class="delete-btn" onclick="deleteMovie(${movie.id})">Remove</button>
+                        <p class="card-title" title="${movie.title}">${movie.title}</p>
+<p style="font-size: 11px; color: #fbbf24; margin-bottom: 4px;">${movie.rating ? `⭐ ${movie.rating}/10` : `<span style="color:var(--muted)">No rating</span>`}</p>                        <span class="badge">${movie.media_type === "movie" ? "🎬" : movie.media_type === "tv" ? "📺" : "⛩️"}</span>
                     </div>
                 `;
                 container.appendChild(card);
             });
         }
 
-        async function updateMovie(id) {
-            const status = document.getElementById(`status-${id}`).value;
-            const rating = document.getElementById(`rating-${id}`).value;
-            const review = document.getElementById(`review-${id}`).value;
+        function openModal(movie) {
+            currentMovie = movie;
+            currentRating = movie.rating || 0;
+
+            document.getElementById("modal-title").textContent = movie.title;
+            document.getElementById("modal-badge").textContent =
+                movie.media_type === "movie" ? "🎬 Movie" : movie.media_type === "tv" ? "📺 TV Show" : "⛩️ Anime";
+
+            const posterContainer = document.getElementById("modal-poster-container");
+            if (movie.poster && movie.poster !== 'None') {
+                posterContainer.innerHTML = `<img src="${movie.poster}" class="modal-poster" alt="${movie.title}">`;
+            } else {
+                posterContainer.innerHTML = `<div class="modal-poster-placeholder">🎬</div>`;
+            }
+
+            const statuses = movie.media_type === "movie" ? movieStatuses : tvAnimeStatuses;
+            document.getElementById("modal-status").innerHTML = statuses
+                .map(s => `<option value="${s.value}" ${movie.status === s.value ? "selected" : ""}>${s.label}</option>`)
+                .join("");
+
+            renderModalStars(currentRating);
+            document.getElementById("modal-review").value = movie.review || "";
+            document.getElementById("modal-details-btn").href = `/details?type=${movie.media_type}&id=${movie.tmdb_id}`;
+
+            const overlay = document.getElementById("modal-overlay");
+            overlay.style.display = "flex";
+            overlay.className = "modal-overlay";
+        }
+
+        function renderModalStars(rating) {
+            const container = document.getElementById("modal-stars");
+            container.innerHTML = "";
+            for (let i = 1; i <= 10; i++) {
+                const star = document.createElement("span");
+                star.className = `modal-star ${i <= rating ? "filled" : ""}`;
+                star.textContent = "★";
+                star.onmouseover = () => highlightStars(i);
+                star.onmouseout = () => renderModalStars(currentRating);
+                star.onclick = () => { currentRating = i; renderModalStars(i); };
+                container.appendChild(star);
+            }
+        }
+
+        function highlightStars(n) {
+            document.querySelectorAll(".modal-star").forEach((s, i) => {
+                s.classList.toggle("filled", i < n);
+            });
+        }
+
+        function closeModal(e) {
+            if (e.target.id === "modal-overlay") {
+                document.getElementById("modal-overlay").style.display = "none";
+            }
+        }
+
+        async function saveMovie() {
+            const status = document.getElementById("modal-status").value;
+            const review = document.getElementById("modal-review").value;
             const response = await fetch("/update", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ id, status, rating, review })
+                body: JSON.stringify({ id: currentMovie.id, status, rating: currentRating, review })
             });
             const result = await response.json();
-            alert(result.message);
+            document.getElementById("modal-overlay").style.display = "none";
+            loadWatchlist();
         }
 
-        async function deleteMovie(id) {
+        async function deleteMovie() {
             if (!confirm("Remove this from your watchlist?")) return;
-            const response = await fetch("/delete", {
+            await fetch("/delete", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ id })
+                body: JSON.stringify({ id: currentMovie.id })
             });
-            const result = await response.json();
-            alert(result.message);
+            document.getElementById("modal-overlay").style.display = "none";
             loadWatchlist();
         }
 
