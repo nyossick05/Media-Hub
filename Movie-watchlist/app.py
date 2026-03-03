@@ -294,6 +294,67 @@ def trending(media_type):
             for m in results[:20]
         ]
     return jsonify(media)
+@app.route("/api/recommendations")
+def recommendations():
+    conn = sqlite3.connect(DB_PATH)
+    c = conn.cursor()
+    c.execute("SELECT tmdb_id, media_type, rating FROM movies ORDER BY rating DESC LIMIT 10")
+    rows = c.fetchall()
+    conn.close()
+
+    if not rows:
+        return jsonify([])
+
+    watched_ids = set(str(r[0]) for r in rows)
+    results = []
+    seen_ids = set()
+
+    for tmdb_id, media_type, rating in rows:
+        if media_type == "anime":
+            try:
+                r = requests.get(f"https://api.jikan.moe/v4/anime/{tmdb_id}/recommendations")
+                items = r.json().get("data", [])[:5]
+                for item in items:
+                    entry = item.get("entry", {})
+                    mid = str(entry.get("mal_id"))
+                    if mid in watched_ids or mid in seen_ids:
+                        continue
+                    seen_ids.add(mid)
+                    results.append({
+                        "tmdb_id": entry.get("mal_id"),
+                        "title": entry.get("title"),
+                        "poster": entry.get("images", {}).get("jpg", {}).get("image_url"),
+                        "media_type": "anime",
+                        "year": "",
+                        "rating": None
+                    })
+            except:
+                pass
+        else:
+            endpoint = "movie" if media_type == "movie" else "tv"
+            try:
+                r = requests.get(
+                    f"https://api.themoviedb.org/3/{endpoint}/{tmdb_id}/recommendations",
+                    params={"api_key": API_KEY}
+                )
+                items = r.json().get("results", [])[:5]
+                for item in items:
+                    mid = str(item.get("id"))
+                    if mid in watched_ids or mid in seen_ids:
+                        continue
+                    seen_ids.add(mid)
+                    results.append({
+                        "tmdb_id": item.get("id"),
+                        "title": item.get("title") or item.get("name"),
+                        "poster": f"https://image.tmdb.org/t/p/w300{item['poster_path']}" if item.get("poster_path") else None,
+                        "year": (item.get("release_date") or item.get("first_air_date") or "")[:4],
+                        "rating": round(item.get("vote_average", 0), 1),
+                        "media_type": media_type
+                    })
+            except:
+                pass
+
+    return jsonify(results[:40])
     
 
 if __name__ == "__main__":
