@@ -1,0 +1,401 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Details — Media Hub</title>
+    <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #0a0a0f;
+            --surface: #12121a;
+            --surface2: #1a1a26;
+            --border: #2a2a3a;
+            --purple: #7c3aed;
+            --purple-light: #9d5ff3;
+            --purple-glow: rgba(124, 58, 237, 0.3);
+            --text: #f0f0f5;
+            --muted: #6b6b80;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'DM Sans', sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+        }
+
+        nav {
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            background: rgba(10, 10, 15, 0.85);
+            backdrop-filter: blur(20px);
+            border-bottom: 1px solid var(--border);
+            padding: 0 40px;
+            display: flex;
+            align-items: center;
+            gap: 40px;
+            height: 60px;
+        }
+
+        .nav-logo {
+            font-family: 'Bebas Neue', sans-serif;
+            font-size: 22px;
+            letter-spacing: 2px;
+            color: var(--purple-light);
+            margin-right: auto;
+        }
+
+        nav a {
+            color: var(--muted);
+            text-decoration: none;
+            font-size: 14px;
+            font-weight: 500;
+            letter-spacing: 0.5px;
+            transition: color 0.2s;
+            padding: 4px 0;
+            border-bottom: 2px solid transparent;
+        }
+
+        nav a:hover { color: var(--text); border-bottom-color: var(--purple); }
+
+        /* Backdrop */
+        .backdrop {
+            width: 100%;
+            height: 380px;
+            object-fit: cover;
+            display: block;
+            mask-image: linear-gradient(to bottom, rgba(0,0,0,0.8) 60%, transparent 100%);
+            -webkit-mask-image: linear-gradient(to bottom, rgba(0,0,0,0.8) 60%, transparent 100%);
+        }
+
+        .backdrop-placeholder {
+            width: 100%;
+            height: 200px;
+            background: linear-gradient(135deg, var(--surface) 0%, var(--surface2) 100%);
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 0 30px 60px;
+            position: relative;
+            z-index: 1;
+            margin-top: -80px;
+        }
+
+        .details-layout {
+            display: flex;
+            gap: 35px;
+            align-items: flex-start;
+        }
+
+        .poster {
+            width: 200px;
+            min-width: 200px;
+            border-radius: 14px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.6);
+            border: 1px solid var(--border);
+        }
+
+        .poster-placeholder {
+            width: 200px;
+            min-width: 200px;
+            aspect-ratio: 2/3;
+            background: var(--surface2);
+            border-radius: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 50px;
+            border: 1px solid var(--border);
+        }
+
+        .info { flex: 1; padding-top: 20px; }
+
+        .media-badge {
+            display: inline-block;
+            font-size: 11px;
+            padding: 3px 12px;
+            border-radius: 20px;
+            background: var(--purple);
+            color: white;
+            margin-bottom: 12px;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+        }
+
+        .title {
+            font-family: 'Bebas Neue', sans-serif;
+            font-size: 48px;
+            letter-spacing: 2px;
+            line-height: 1;
+            margin-bottom: 12px;
+        }
+
+        .meta {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 16px;
+            margin-bottom: 16px;
+            color: var(--muted);
+            font-size: 13px;
+        }
+
+        .meta span { display: flex; align-items: center; gap: 5px; }
+
+        .rating-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            background: var(--surface2);
+            border: 1px solid var(--border);
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 13px;
+            font-weight: 600;
+            color: #fbbf24;
+        }
+
+        .genres {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-bottom: 20px;
+        }
+
+        .genre-tag {
+            padding: 5px 14px;
+            border-radius: 20px;
+            background: var(--surface2);
+            border: 1px solid var(--border);
+            font-size: 12px;
+            color: var(--muted);
+        }
+
+        .overview {
+            font-size: 14px;
+            line-height: 1.8;
+            color: #c0c0d0;
+            margin-bottom: 25px;
+        }
+
+        .add-section {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            padding: 20px;
+            margin-top: 10px;
+        }
+
+        .add-section h3 {
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--muted);
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            margin-bottom: 14px;
+        }
+
+        .add-section select,
+        .add-section input,
+        .add-section textarea {
+            width: 100%;
+            margin-bottom: 10px;
+            padding: 10px 14px;
+            background: var(--surface2);
+            border: 1px solid var(--border);
+            border-radius: 9px;
+            color: var(--text);
+            font-family: 'DM Sans', sans-serif;
+            font-size: 13px;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        .add-section select:focus,
+        .add-section input:focus,
+        .add-section textarea:focus { border-color: var(--purple); }
+
+        .add-section textarea { resize: vertical; min-height: 80px; }
+
+        .btn-primary {
+            width: 100%;
+            padding: 12px;
+            background: var(--purple);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            font-family: 'DM Sans', sans-serif;
+            font-size: 14px;
+            font-weight: 600;
+            transition: all 0.2s;
+        }
+
+        .btn-primary:hover {
+            background: var(--purple-light);
+            box-shadow: 0 0 25px var(--purple-glow);
+        }
+
+        .back-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            color: var(--muted);
+            text-decoration: none;
+            font-size: 13px;
+            margin-bottom: 20px;
+            transition: color 0.2s;
+            margin-top: 20px;
+            display: block;
+        }
+
+        .back-btn:hover { color: var(--text); }
+
+        .loading {
+            text-align: center;
+            padding: 100px 20px;
+            color: var(--muted);
+            font-size: 16px;
+        }
+    </style>
+</head>
+<body>
+    <nav>
+        <span class="nav-logo">MEDIA HUB</span>
+        <a href="/">Search</a>
+        <a href="/watchlist-page">Watchlist</a>
+    </nav>
+
+    <div id="loading" class="loading">Loading...</div>
+    <div id="content" style="display:none;">
+        <img id="backdrop" class="backdrop" style="display:none;">
+        <div id="backdrop-placeholder" class="backdrop-placeholder"></div>
+
+        <div class="container">
+            <a href="javascript:history.back()" class="back-btn">← Back</a>
+            <div class="details-layout">
+                <div id="poster-container"></div>
+                <div class="info">
+                    <span id="media-badge" class="media-badge"></span>
+                    <h1 class="title" id="title"></h1>
+                    <div class="meta" id="meta"></div>
+                    <div class="genres" id="genres"></div>
+                    <p class="overview" id="overview"></p>
+                    <div class="add-section">
+                        <h3>Add to Watchlist</h3>
+                        <select id="status-select"></select>
+                        <input type="number" id="rating-input" min="1" max="10" placeholder="Your rating /10">
+                        <textarea id="review-input" placeholder="Your review..."></textarea>
+                        <button class="btn-primary" onclick="addToWatchlist()">+ Add to Watchlist</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const params = new URLSearchParams(window.location.search);
+        const tmdbId = params.get("id");
+        const mediaType = params.get("type");
+
+        const movieStatuses = [
+            { value: "plan_to_watch", label: "Plan to Watch" },
+            { value: "watched", label: "Watched" }
+        ];
+
+        const tvAnimeStatuses = [
+            { value: "plan_to_watch", label: "Plan to Watch" },
+            { value: "watching", label: "Watching" },
+            { value: "completed", label: "Completed" },
+            { value: "dropped", label: "Dropped" }
+        ];
+
+        async function loadDetails() {
+            const response = await fetch(`/api/details/${mediaType}/${tmdbId}`);
+            const data = await response.json();
+
+            document.title = `${data.title} — Media Hub`;
+
+            if (data.backdrop) {
+                document.getElementById("backdrop").src = data.backdrop;
+                document.getElementById("backdrop").style.display = "block";
+                document.getElementById("backdrop-placeholder").style.display = "none";
+            }
+
+            const posterContainer = document.getElementById("poster-container");
+            if (data.poster) {
+                posterContainer.innerHTML = `<img src="${data.poster}" class="poster" alt="${data.title}">`;
+            } else {
+                posterContainer.innerHTML = `<div class="poster-placeholder">🎬</div>`;
+            }
+
+            document.getElementById("media-badge").textContent =
+                mediaType === "movie" ? "🎬 Movie" : mediaType === "tv" ? "📺 TV Show" : "⛩️ Anime";
+
+            document.getElementById("title").textContent = data.title;
+
+            const meta = [];
+            if (data.year) meta.push(`<span>📅 ${data.year}</span>`);
+            if (data.rating) meta.push(`<span class="rating-badge">⭐ ${data.rating}</span>`);
+            if (data.runtime) meta.push(`<span>⏱ ${data.runtime} min</span>`);
+            if (data.episodes) meta.push(`<span>📺 ${data.episodes} episodes</span>`);
+            if (data.status) meta.push(`<span>• ${data.status}</span>`);
+            document.getElementById("meta").innerHTML = meta.join("");
+
+            document.getElementById("genres").innerHTML = data.genres
+                .map(g => `<span class="genre-tag">${g}</span>`).join("");
+
+            document.getElementById("overview").textContent = data.overview || "No overview available.";
+
+            const statuses = mediaType === "movie" ? movieStatuses : tvAnimeStatuses;
+            document.getElementById("status-select").innerHTML = statuses
+                .map(s => `<option value="${s.value}">${s.label}</option>`).join("");
+
+            document.getElementById("loading").style.display = "none";
+            document.getElementById("content").style.display = "block";
+
+            window._detailData = data;
+        }
+
+        async function addToWatchlist() {
+            const data = window._detailData;
+            const status = document.getElementById("status-select").value;
+            const rating = document.getElementById("rating-input").value;
+            const review = document.getElementById("review-input").value;
+
+            const response = await fetch("/add", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    tmdb_id: tmdbId,
+                    title: data.title,
+                    poster: data.poster,
+                    media_type: mediaType
+                })
+            });
+            const result = await response.json();
+
+            if (result.success && rating || review) {
+                const allRes = await fetch("/watchlist");
+                const allMovies = await allRes.json();
+                const match = allMovies.find(m => String(m.tmdb_id) === String(tmdbId));
+                if (match) {
+                    await fetch("/update", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ id: match.id, status, rating, review })
+                    });
+                }
+            }
+
+            alert(result.message);
+        }
+
+        loadDetails();
+    </script>
+</body>
+</html>

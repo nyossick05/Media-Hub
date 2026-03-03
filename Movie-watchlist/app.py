@@ -139,6 +139,50 @@ def delete_movie():
     conn.commit()
     conn.close()
     return jsonify({"success": True, "message": "Removed from watchlist!"})
+@app.route("/details")
+def details():
+    tmdb_id = request.args.get("id")
+    media_type = request.args.get("type")
+    return render_template("details.html", tmdb_id=tmdb_id, media_type=media_type)
+
+@app.route("/api/details/<media_type>/<int:tmdb_id>")
+def api_details(media_type, tmdb_id):
+    if media_type == "anime":
+        response = requests.get(f"https://api.jikan.moe/v4/anime/{tmdb_id}/full")
+        data = response.json().get("data", {})
+        return jsonify({
+            "title": data.get("title"),
+            "poster": data.get("images", {}).get("jpg", {}).get("large_image_url"),
+            "backdrop": None,
+            "overview": data.get("synopsis"),
+            "genres": [g["name"] for g in data.get("genres", [])],
+            "rating": data.get("score"),
+            "runtime": None,
+            "episodes": data.get("episodes"),
+            "status": data.get("status"),
+            "year": str(data.get("year") or ""),
+            "media_type": "anime"
+        })
+    else:
+        endpoint = "movie" if media_type == "movie" else "tv"
+        response = requests.get(
+            f"https://api.themoviedb.org/3/{endpoint}/{tmdb_id}",
+            params={"api_key": API_KEY}
+        )
+        data = response.json()
+        return jsonify({
+            "title": data.get("title") or data.get("name"),
+            "poster": f"https://image.tmdb.org/t/p/w400{data['poster_path']}" if data.get("poster_path") else None,
+            "backdrop": f"https://image.tmdb.org/t/p/w1280{data['backdrop_path']}" if data.get("backdrop_path") else None,
+            "overview": data.get("overview"),
+            "genres": [g["name"] for g in data.get("genres", [])],
+            "rating": round(data.get("vote_average", 0), 1),
+            "runtime": data.get("runtime"),
+            "episodes": data.get("number_of_episodes"),
+            "status": data.get("status"),
+            "year": (data.get("release_date") or data.get("first_air_date") or "")[:4],
+            "media_type": media_type
+        })
 
 if __name__ == "__main__":
     init_db()

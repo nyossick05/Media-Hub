@@ -2,74 +2,355 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Media Watchlist</title>
+    <title>Media Hub</title>
+    <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
     <style>
-        body { font-family: Arial, sans-serif; max-width: 800px; margin: 40px auto; padding: 0 20px; background: #111; color: #fff; }
-        h1 { color: #e50914; }
-        nav a { color: #e50914; text-decoration: none; margin-right: 20px; font-size: 16px; }
-        .search-bar { margin-top: 20px; }
-        input { padding: 10px; width: 60%; font-size: 16px; border-radius: 5px; border: none; }
-        button { padding: 10px 20px; background: #e50914; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 16px; }
-        .toggle { margin: 15px 0; }
-        .toggle button { background: #333; margin-right: 10px; }
-        .toggle button.active { background: #e50914; }
-        .results { display: flex; flex-wrap: wrap; gap: 15px; margin-top: 20px; }
-        .movie-card { background: #222; border-radius: 8px; padding: 10px; width: 140px; text-align: center; }
-        .movie-card img { width: 120px; height: 180px; object-fit: cover; border-radius: 5px; }
-        .movie-card p { font-size: 13px; margin: 5px 0; }
-        .add-btn { background: #e50914; color: white; border: none; border-radius: 4px; padding: 5px 10px; cursor: pointer; margin-top: 5px; }
-        .badge { background: #333; font-size: 11px; padding: 2px 6px; border-radius: 10px; }
+        :root {
+            --bg: #0a0a0f;
+            --surface: #12121a;
+            --surface2: #1a1a26;
+            --border: #2a2a3a;
+            --purple: #7c3aed;
+            --purple-light: #9d5ff3;
+            --purple-glow: rgba(124, 58, 237, 0.3);
+            --text: #f0f0f5;
+            --muted: #6b6b80;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'DM Sans', sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+        }
+
+        /* Ambient background */
+        body::before {
+            content: '';
+            position: fixed;
+            top: -200px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 600px;
+            height: 400px;
+            background: radial-gradient(ellipse, rgba(124, 58, 237, 0.12) 0%, transparent 70%);
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        nav {
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            background: rgba(10, 10, 15, 0.85);
+            backdrop-filter: blur(20px);
+            border-bottom: 1px solid var(--border);
+            padding: 0 40px;
+            display: flex;
+            align-items: center;
+            gap: 40px;
+            height: 60px;
+        }
+
+        .nav-logo {
+            font-family: 'Bebas Neue', sans-serif;
+            font-size: 22px;
+            letter-spacing: 2px;
+            color: var(--purple-light);
+            margin-right: auto;
+        }
+
+        nav a {
+            color: var(--muted);
+            text-decoration: none;
+            font-size: 14px;
+            font-weight: 500;
+            letter-spacing: 0.5px;
+            transition: color 0.2s;
+            padding: 4px 0;
+            border-bottom: 2px solid transparent;
+        }
+
+        nav a:hover, nav a.active {
+            color: var(--text);
+            border-bottom-color: var(--purple);
+        }
+
+        .container {
+            max-width: 1100px;
+            margin: 0 auto;
+            padding: 50px 30px;
+            position: relative;
+            z-index: 1;
+        }
+
+        .page-title {
+            font-family: 'Bebas Neue', sans-serif;
+            font-size: 52px;
+            letter-spacing: 3px;
+            line-height: 1;
+            margin-bottom: 8px;
+        }
+
+        .page-subtitle {
+            color: var(--muted);
+            font-size: 14px;
+            margin-bottom: 40px;
+        }
+
+        /* Toggle */
+        .toggle {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 30px;
+            background: var(--surface);
+            padding: 5px;
+            border-radius: 12px;
+            width: fit-content;
+            border: 1px solid var(--border);
+        }
+
+        .toggle button {
+            padding: 8px 22px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-family: 'DM Sans', sans-serif;
+            font-size: 13px;
+            font-weight: 500;
+            background: transparent;
+            color: var(--muted);
+            transition: all 0.2s;
+        }
+
+        .toggle button.active {
+            background: var(--purple);
+            color: white;
+            box-shadow: 0 0 20px var(--purple-glow);
+        }
+
+        /* Search bar */
+        .search-bar {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 40px;
+        }
+
+        .search-bar input {
+            flex: 1;
+            padding: 14px 20px;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            color: var(--text);
+            font-family: 'DM Sans', sans-serif;
+            font-size: 15px;
+            outline: none;
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+
+        .search-bar input:focus {
+            border-color: var(--purple);
+            box-shadow: 0 0 0 3px var(--purple-glow);
+        }
+
+        .search-bar input::placeholder { color: var(--muted); }
+
+        .btn-primary {
+            padding: 14px 28px;
+            background: var(--purple);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            cursor: pointer;
+            font-family: 'DM Sans', sans-serif;
+            font-size: 15px;
+            font-weight: 600;
+            transition: all 0.2s;
+            white-space: nowrap;
+        }
+
+        .btn-primary:hover {
+            background: var(--purple-light);
+            box-shadow: 0 0 25px var(--purple-glow);
+            transform: translateY(-1px);
+        }
+
+        /* Results grid */
+        .results {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+            gap: 20px;
+        }
+
+        .movie-card {
+            background: var(--surface);
+            border-radius: 12px;
+            overflow: hidden;
+            border: 1px solid var(--border);
+            transition: all 0.25s;
+            cursor: pointer;
+        }
+
+        .movie-card:hover {
+            transform: translateY(-5px);
+            border-color: var(--purple);
+            box-shadow: 0 10px 40px rgba(124, 58, 237, 0.2);
+        }
+
+        .movie-card img {
+            width: 100%;
+            aspect-ratio: 2/3;
+            object-fit: cover;
+            display: block;
+        }
+
+        .movie-card-no-poster {
+            width: 100%;
+            aspect-ratio: 2/3;
+            background: var(--surface2);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 40px;
+        }
+
+        .card-info {
+            padding: 10px 12px 12px;
+        }
+
+        .card-info p {
+            font-size: 12px;
+            font-weight: 500;
+            line-height: 1.4;
+            margin-bottom: 4px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .card-year {
+            color: var(--muted);
+            font-size: 11px !important;
+            margin-bottom: 8px !important;
+        }
+
+        .badge {
+            display: inline-block;
+            font-size: 10px;
+            padding: 2px 8px;
+            border-radius: 20px;
+            background: var(--surface2);
+            color: var(--muted);
+            border: 1px solid var(--border);
+            margin-bottom: 8px;
+        }
+
+        .add-btn {
+            width: 100%;
+            padding: 7px;
+            background: var(--purple);
+            color: white;
+            border: none;
+            border-radius: 7px;
+            cursor: pointer;
+            font-family: 'DM Sans', sans-serif;
+            font-size: 12px;
+            font-weight: 600;
+            transition: all 0.2s;
+        }
+
+        .add-btn:hover {
+            background: var(--purple-light);
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 80px 20px;
+            color: var(--muted);
+        }
+
+        .empty-state .icon { font-size: 48px; margin-bottom: 16px; }
+        .empty-state p { font-size: 16px; }
     </style>
 </head>
 <body>
     <nav>
-        <a href="/">🔍 Search</a>
-        <a href="/watchlist-page">📋 My Watchlist</a>
+        <span class="nav-logo">MEDIA HUB</span>
+        <a href="/" class="active">Search</a>
+        <a href="/watchlist-page">Watchlist</a>
     </nav>
-    <h1>🎬 Media Watchlist</h1>
 
-    <div class="toggle">
-    <button class="active" id="btn-movie" onclick="setType('movie')">Movies</button>
-    <button id="btn-tv" onclick="setType('tv')">TV Shows</button>
-    <button id="btn-anime" onclick="setType('anime')">Anime</button>
-</div>
+    <div class="container">
+        <h1 class="page-title">DISCOVER</h1>
+        <p class="page-subtitle">Search for movies, TV shows and anime to add to your list</p>
 
-    <div class="search-bar">
-        <input type="text" id="search-input" placeholder="Search...">
-        <button onclick="searchMedia()">Search</button>
+        <div class="toggle">
+            <button class="active" id="btn-movie" onclick="setType('movie')">🎬 Movies</button>
+            <button id="btn-tv" onclick="setType('tv')">📺 TV Shows</button>
+            <button id="btn-anime" onclick="setType('anime')">⛩️ Anime</button>
+        </div>
+
+        <div class="search-bar">
+            <input type="text" id="search-input" placeholder="Search for a movie...">
+            <button class="btn-primary" onclick="searchMedia()">Search</button>
+        </div>
+
+        <div class="results" id="results"></div>
     </div>
-
-    <div class="results" id="results"></div>
 
     <script>
         let currentType = "movie";
 
         function setType(type) {
-    currentType = type;
-    document.getElementById("btn-movie").classList.toggle("active", type === "movie");
-    document.getElementById("btn-tv").classList.toggle("active", type === "tv");
-    document.getElementById("btn-anime").classList.toggle("active", type === "anime");
-    document.getElementById("results").innerHTML = "";
-    const placeholders = { movie: "Search for a movie...", tv: "Search for a TV show...", anime: "Search for an anime..." };
-    document.getElementById("search-input").placeholder = placeholders[type];
-}
+            currentType = type;
+            document.getElementById("btn-movie").classList.toggle("active", type === "movie");
+            document.getElementById("btn-tv").classList.toggle("active", type === "tv");
+            document.getElementById("btn-anime").classList.toggle("active", type === "anime");
+            document.getElementById("results").innerHTML = "";
+            const placeholders = {
+                movie: "Search for a movie...",
+                tv: "Search for a TV show...",
+                anime: "Search for an anime..."
+            };
+            document.getElementById("search-input").placeholder = placeholders[type];
+        }
 
         async function searchMedia() {
             const query = document.getElementById("search-input").value;
+            if (!query.trim()) return;
+
+            const container = document.getElementById("results");
+            container.innerHTML = `<div class="empty-state"><div class="icon">⏳</div><p>Searching...</p></div>`;
+
             const response = await fetch(`/search?q=${query}&type=${currentType}`);
             const items = await response.json();
 
-            const container = document.getElementById("results");
             container.innerHTML = "";
+
+            if (items.length === 0) {
+                container.innerHTML = `<div class="empty-state"><div class="icon">🔍</div><p>No results found</p></div>`;
+                return;
+            }
 
             items.forEach(item => {
                 const card = document.createElement("div");
                 card.className = "movie-card";
                 card.innerHTML = `
-                    ${item.poster ? `<img src="${item.poster}" alt="${item.title}">` : "🎬"}
-                    <p><strong>${item.title}</strong></p>
-                    <p>${item.year} <span class="badge">${item.media_type === "movie" ? "Movie" : "TV"}</span></p>
-                    <button class="add-btn" onclick="addMedia(${item.tmdb_id}, '${item.title.replace(/'/g, "\\'")}', '${item.poster}', '${item.media_type}')">+ Add</button>
+                    <a href="/details?type=${item.media_type}&id=${item.tmdb_id}">
+    ${item.poster && item.poster !== 'None'
+        ? `<img src="${item.poster}" alt="${item.title}">`
+        : `<div class="movie-card-no-poster">🎬</div>`}
+</a>
+<div class="card-info">
+    <a href="/details?type=${item.media_type}&id=${item.tmdb_id}" style="text-decoration:none; color:inherit;">
+        <p title="${item.title}"><strong>${item.title}</strong></p>
+    </a>
+                        <p class="card-year">${item.year} · <span class="badge">${item.media_type === "movie" ? "Movie" : item.media_type === "tv" ? "TV" : "Anime"}</span></p>
+                        <button class="add-btn" onclick="addMedia(${item.tmdb_id}, '${item.title.replace(/'/g, "\\'")}', '${item.poster}', '${item.media_type}')">+ Add</button>
+                    </div>
                 `;
                 container.appendChild(card);
             });
