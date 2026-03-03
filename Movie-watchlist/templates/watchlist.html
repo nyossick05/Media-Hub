@@ -29,103 +29,128 @@
     <h1>My Watchlist</h1>
 
     <div class="filters">
-        <button class="active" onclick="filterMedia('all', this)">All</button>
-        <button onclick="filterMedia('plan_to_watch', this)">Plan to Watch</button>
-        <button onclick="filterMedia('watching', this)">Watching</button>
-        <button onclick="filterMedia('completed', this)">Completed</button>
-        <button onclick="filterMedia('dropped', this)">Dropped</button>
-    </div>
+    <p style="color:#aaa; margin-bottom: 5px;">Filter by type:</p>
+    <button class="active" onclick="filterType('all', this)" id="type-all">All</button>
+    <button onclick="filterType('movie', this)" id="type-movie">🎬 Movies</button>
+    <button onclick="filterType('tv', this)" id="type-tv">📺 TV Shows</button>
+    <button onclick="filterType('anime', this)" id="type-anime">⛩️ Anime</button>
+
+    <p style="color:#aaa; margin: 10px 0 5px;">Filter by status:</p>
+    <button class="active" onclick="filterStatus('all', this)" id="status-all">All</button>
+    <button onclick="filterStatus('plan_to_watch', this)">Plan to Watch</button>
+    <button onclick="filterStatus('watching', this)">Watching</button>
+    <button onclick="filterStatus('watched', this)">Watched</button>
+    <button onclick="filterStatus('completed', this)">Completed</button>
+    <button onclick="filterStatus('dropped', this)">Dropped</button>
+</div>
 
     <div class="movies" id="movies-container"></div>
 
     <script>
-        let allMovies = [];
+    let allMovies = [];
+    let activeType = "all";
+    let activeStatus = "all";
 
-        const movieStatuses = [
-            { value: "plan_to_watch", label: "Plan to Watch" },
-            { value: "completed", label: "Completed" }
-        ];
+    const movieStatuses = [
+        { value: "plan_to_watch", label: "Plan to Watch" },
+        { value: "watched", label: "Watched" }
+    ];
 
-        const tvAnimeStatuses = [
-            { value: "plan_to_watch", label: "Plan to Watch" },
-            { value: "watching", label: "Watching" },
-            { value: "completed", label: "Completed" },
-            { value: "dropped", label: "Dropped" }
-        ];
+    const tvAnimeStatuses = [
+        { value: "plan_to_watch", label: "Plan to Watch" },
+        { value: "watching", label: "Watching" },
+        { value: "completed", label: "Completed" },
+        { value: "dropped", label: "Dropped" }
+    ];
 
-        async function loadWatchlist() {
-            const response = await fetch("/watchlist");
-            allMovies = await response.json();
-            renderMovies(allMovies);
+    async function loadWatchlist() {
+        const response = await fetch("/watchlist");
+        allMovies = await response.json();
+        applyFilters();
+    }
+
+    function filterType(type, btn) {
+        activeType = type;
+        document.querySelectorAll(".filters button[id^='type-']").forEach(b => b.classList.remove("active"));
+        btn.classList.add("active");
+        applyFilters();
+    }
+
+    function filterStatus(status, btn) {
+        activeStatus = status;
+        document.querySelectorAll(".filters button[id^='status-'], .filters button:not([id])").forEach(b => b.classList.remove("active"));
+        btn.classList.add("active");
+        applyFilters();
+    }
+
+    function applyFilters() {
+        let filtered = allMovies;
+        if (activeType !== "all") {
+            filtered = filtered.filter(m => m.media_type === activeType);
+        }
+        if (activeStatus !== "all") {
+            filtered = filtered.filter(m => m.status === activeStatus);
+        }
+        renderMovies(filtered);
+    }
+
+    function renderMovies(movies) {
+        const container = document.getElementById("movies-container");
+        container.innerHTML = "";
+
+        if (movies.length === 0) {
+            container.innerHTML = "<p class='empty'>Nothing here yet!</p>";
+            return;
         }
 
-        function filterMedia(status, btn) {
-            document.querySelectorAll(".filters button").forEach(b => b.classList.remove("active"));
-            btn.classList.add("active");
-            if (status === "all") {
-                renderMovies(allMovies);
-            } else {
-                renderMovies(allMovies.filter(m => m.status === status));
-            }
-        }
+        movies.forEach(movie => {
+            const statuses = movie.media_type === "movie" ? movieStatuses : tvAnimeStatuses;
+            const statusOptions = statuses.map(s =>
+                `<option value="${s.value}" ${movie.status === s.value ? "selected" : ""}>${s.label}</option>`
+            ).join("");
 
-        function renderMovies(movies) {
-            const container = document.getElementById("movies-container");
-            container.innerHTML = "";
+            const card = document.createElement("div");
+            card.className = "movie-card";
+            card.innerHTML = `
+                ${movie.poster ? `<img src="${movie.poster}" alt="${movie.title}">` : "🎬"}
+                <p><strong>${movie.title}</strong></p>
+                <p><span class="badge">${movie.media_type === "movie" ? "🎬 Movie" : movie.media_type === "tv" ? "📺 TV" : "⛩️ Anime"}</span></p>
+                <select id="status-${movie.id}">${statusOptions}</select>
+                <input type="number" id="rating-${movie.id}" min="1" max="10" placeholder="Rating /10" value="${movie.rating || ""}">
+                <textarea id="review-${movie.id}" placeholder="Your review..." rows="3">${movie.review || ""}</textarea>
+                <button class="save-btn" onclick="updateMovie(${movie.id})">Save</button>
+                <button class="delete-btn" onclick="deleteMovie(${movie.id})">Remove</button>
+            `;
+            container.appendChild(card);
+        });
+    }
 
-            if (movies.length === 0) {
-                container.innerHTML = "<p class='empty'>Nothing here yet!</p>";
-                return;
-            }
+    async function updateMovie(id) {
+        const status = document.getElementById(`status-${id}`).value;
+        const rating = document.getElementById(`rating-${id}`).value;
+        const review = document.getElementById(`review-${id}`).value;
+        const response = await fetch("/update", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ id, status, rating, review })
+        });
+        const result = await response.json();
+        alert(result.message);
+    }
 
-            movies.forEach(movie => {
-                const statuses = movie.media_type === "movie" ? movieStatuses : tvAnimeStatuses;
-                const statusOptions = statuses.map(s =>
-                    `<option value="${s.value}" ${movie.status === s.value ? "selected" : ""}>${s.label}</option>`
-                ).join("");
-
-                const card = document.createElement("div");
-                card.className = "movie-card";
-                card.innerHTML = `
-                    ${movie.poster ? `<img src="${movie.poster}" alt="${movie.title}">` : "🎬"}
-                    <p><strong>${movie.title}</strong></p>
-                    <p><span class="badge">${movie.media_type === "movie" ? "🎬 Movie" : movie.media_type === "tv" ? "📺 TV" : "⛩️ Anime"}</span></p>
-                    <select id="status-${movie.id}">${statusOptions}</select>
-                    <input type="number" id="rating-${movie.id}" min="1" max="10" placeholder="Rating /10" value="${movie.rating || ""}">
-                    <textarea id="review-${movie.id}" placeholder="Your review..." rows="3">${movie.review || ""}</textarea>
-                    <button class="save-btn" onclick="updateMovie(${movie.id})">Save</button>
-                    <button class="delete-btn" onclick="deleteMovie(${movie.id})">Remove</button>
-                `;
-                container.appendChild(card);
-            });
-        }
-
-        async function updateMovie(id) {
-            const status = document.getElementById(`status-${id}`).value;
-            const rating = document.getElementById(`rating-${id}`).value;
-            const review = document.getElementById(`review-${id}`).value;
-            const response = await fetch("/update", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ id, status, rating, review })
-            });
-            const result = await response.json();
-            alert(result.message);
-        }
-
-        async function deleteMovie(id) {
-            if (!confirm("Remove this from your watchlist?")) return;
-            const response = await fetch("/delete", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ id })
-            });
-            const result = await response.json();
-            alert(result.message);
-            loadWatchlist();
-        }
-
+    async function deleteMovie(id) {
+        if (!confirm("Remove this from your watchlist?")) return;
+        const response = await fetch("/delete", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ id })
+        });
+        const result = await response.json();
+        alert(result.message);
         loadWatchlist();
-    </script>
+    }
+
+    loadWatchlist();
+</script>
 </body>
 </html>
