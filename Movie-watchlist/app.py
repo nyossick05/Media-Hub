@@ -39,7 +39,7 @@ def search():
     if media_type == "anime":
         response = requests.get(
             "https://api.jikan.moe/v4/anime",
-            params={"q": query, "limit": 8}
+            params={"q": query, "limit": 20}
         )
         results = response.json().get("data", [])
         media = [
@@ -67,7 +67,7 @@ def search():
                 "year": (m.get("release_date") or m.get("first_air_date") or "")[:4],
                 "media_type": media_type
             }
-            for m in results[:8]
+            for m in results[:20]
         ]
     return jsonify(media)
     

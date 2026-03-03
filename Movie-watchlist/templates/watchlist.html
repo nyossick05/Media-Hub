@@ -27,7 +27,7 @@
         <a href="/watchlist-page">📋 My Watchlist</a>
     </nav>
     <h1>My Watchlist</h1>
-
+    <input type="text" id="watchlist-search" placeholder="Search your watchlist..." oninput="applyFilters()" style="padding: 10px; width: 70%; font-size: 16px; border-radius: 5px; border: none; margin-bottom: 15px;">
     <div class="filters">
     <p style="color:#aaa; margin-bottom: 5px;">Filter by type:</p>
     <button class="active" onclick="filterType('all', this)" id="type-all">All</button>
@@ -84,15 +84,21 @@
     }
 
     function applyFilters() {
-        let filtered = allMovies;
-        if (activeType !== "all") {
-            filtered = filtered.filter(m => m.media_type === activeType);
-        }
-        if (activeStatus !== "all") {
-            filtered = filtered.filter(m => m.status === activeStatus);
-        }
-        renderMovies(filtered);
+    const query = document.getElementById("watchlist-search").value.toLowerCase();
+    let filtered = allMovies;
+
+    if (activeType !== "all") {
+        filtered = filtered.filter(m => m.media_type === activeType);
     }
+    if (activeStatus !== "all") {
+        filtered = filtered.filter(m => m.status === activeStatus);
+    }
+    if (query) {
+        filtered = filtered.filter(m => m.title.toLowerCase().includes(query));
+    }
+
+    renderMovies(filtered);
+}
 
     function renderMovies(movies) {
         const container = document.getElementById("movies-container");
