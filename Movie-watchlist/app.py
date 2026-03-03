@@ -3,14 +3,16 @@ import sqlite3
 import os
 import requests
 from dotenv import load_dotenv
-
+import os
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+DB_PATH = os.path.join(BASE_DIR, "watchlist.db")
 load_dotenv()
 
 app = Flask(__name__)
 API_KEY = os.getenv("TMDB_API_KEY")
 
 def init_db():
-    conn = sqlite3.connect("watchlist.db")
+    conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
     c.execute('''
         CREATE TABLE IF NOT EXISTS movies (
@@ -74,7 +76,7 @@ def search():
 @app.route("/add", methods=["POST"])
 def add_movie():
     data = request.get_json()
-    conn = sqlite3.connect("watchlist.db")
+    conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
     try:
         c.execute('''
@@ -90,7 +92,7 @@ def add_movie():
 
 @app.route("/watchlist")
 def watchlist():
-    conn = sqlite3.connect("watchlist.db")
+    conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
     c.execute("SELECT * FROM movies")
     rows = c.fetchall()
@@ -117,7 +119,7 @@ def watchlist_page():
 @app.route("/update", methods=["POST"])
 def update_movie():
     data = request.get_json()
-    conn = sqlite3.connect("watchlist.db")
+    conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
     c.execute('''
         UPDATE movies
@@ -131,7 +133,7 @@ def update_movie():
 @app.route("/delete", methods=["POST"])
 def delete_movie():
     data = request.get_json()
-    conn = sqlite3.connect("watchlist.db")
+    conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
     c.execute("DELETE FROM movies WHERE id = ?", (data["id"],))
     conn.commit()
