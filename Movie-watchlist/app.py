@@ -29,10 +29,6 @@ def init_db():
     conn.commit()
     conn.close()
 
-@app.route("/")
-def home():
-    return render_template("index.html")
-
 @app.route("/search")
 def search():
     query = request.args.get("q")
@@ -183,6 +179,85 @@ def api_details(media_type, tmdb_id):
             "year": (data.get("release_date") or data.get("first_air_date") or "")[:4],
             "media_type": media_type
         })
+@app.route("/stats")
+def stats():
+    return render_template("stats.html")
+
+@app.route("/api/stats")
+def api_stats():
+    conn = sqlite3.connect(DB_PATH)
+    c = conn.cursor()
+    c.execute("SELECT * FROM movies")
+    rows = c.fetchall()
+    conn.close()
+
+    movies = [
+        {
+            "id": r[0],
+            "tmdb_id": r[1],
+            "title": r[2],
+            "poster": r[3],
+            "status": r[4],
+            "rating": r[5],
+            "review": r[6],
+            "media_type": r[7]
+        }
+        for r in rows
+    ]
+
+    total = len(movies)
+    status_counts = {}
+    for m in movies:
+        status_counts[m["status"]] = status_counts.get(m["status"], 0) + 1
+
+    type_counts = {"movie": 0, "tv": 0, "anime": 0}
+    for m in movies:
+        if m["media_type"] in type_counts:
+            type_counts[m["media_type"]] += 1
+
+    ratings = [m["rating"] for m in movies if m["rating"]]
+    avg_rating = round(sum(ratings) / len(ratings), 1) if ratings else None
+
+    # fetch genres for rated items
+    genre_counts = {}
+    for m in movies:
+        if m["media_type"] == "anime":
+            try:
+                r = requests.get(f"https://api.jikan.moe/v4/anime/{m['tmdb_id']}")
+                genres = [g["name"] for g in r.json().get("data", {}).get("genres", [])]
+            except:
+                genres = []
+        else:
+            endpoint = "movie" if m["media_type"] == "movie" else "tv"
+            try:
+                r = requests.get(
+                    f"https://api.themoviedb.org/3/{endpoint}/{m['tmdb_id']}",
+                    params={"api_key": API_KEY}
+                )
+                genres = [g["name"] for g in r.json().get("genres", [])]
+            except:
+                genres = []
+        for g in genres:
+            genre_counts[g] = genre_counts.get(g, 0) + 1
+
+    top_genres = sorted(genre_counts.items(), key=lambda x: x[1], reverse=True)[:6]
+
+    return jsonify({
+        "total": total,
+        "status_counts": status_counts,
+        "type_counts": type_counts,
+        "avg_rating": avg_rating,
+        "top_genres": top_genres
+    })
+@app.route("/")
+def home():
+    return render_template("home.html", api_key=API_KEY)
+
+@app.route("/discover")
+def search_page():
+    return render_template("index.html")
+
+    
 
 if __name__ == "__main__":
     init_db()

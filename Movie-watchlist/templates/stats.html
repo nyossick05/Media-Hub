@@ -1,0 +1,419 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Stats — Media Hub</title>
+    <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #0a0a0f;
+            --surface: #12121a;
+            --surface2: #1a1a26;
+            --border: #2a2a3a;
+            --purple: #7c3aed;
+            --purple-light: #9d5ff3;
+            --purple-glow: rgba(124, 58, 237, 0.3);
+            --text: #f0f0f5;
+            --muted: #6b6b80;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'DM Sans', sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+        }
+
+        body::before {
+            content: '';
+            position: fixed;
+            top: -200px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 600px;
+            height: 400px;
+            background: radial-gradient(ellipse, rgba(124, 58, 237, 0.12) 0%, transparent 70%);
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        nav {
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            background: rgba(10, 10, 15, 0.85);
+            backdrop-filter: blur(20px);
+            border-bottom: 1px solid var(--border);
+            padding: 0 40px;
+            display: flex;
+            align-items: center;
+            gap: 40px;
+            height: 60px;
+        }
+
+        .nav-logo {
+            font-family: 'Bebas Neue', sans-serif;
+            font-size: 22px;
+            letter-spacing: 2px;
+            color: var(--purple-light);
+            margin-right: auto;
+        }
+
+        nav a {
+            color: var(--muted);
+            text-decoration: none;
+            font-size: 14px;
+            font-weight: 500;
+            letter-spacing: 0.5px;
+            transition: color 0.2s;
+            padding: 4px 0;
+            border-bottom: 2px solid transparent;
+        }
+
+        nav a:hover, nav a.active {
+            color: var(--text);
+            border-bottom-color: var(--purple);
+        }
+
+        .container {
+            max-width: 1100px;
+            margin: 0 auto;
+            padding: 50px 30px;
+            position: relative;
+            z-index: 1;
+        }
+
+        .page-title {
+            font-family: 'Bebas Neue', sans-serif;
+            font-size: 52px;
+            letter-spacing: 3px;
+            line-height: 1;
+            margin-bottom: 8px;
+        }
+
+        .page-subtitle {
+            color: var(--muted);
+            font-size: 14px;
+            margin-bottom: 40px;
+        }
+
+        /* Stats grid */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 16px;
+            margin-bottom: 30px;
+        }
+
+        .stat-card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            padding: 24px;
+            transition: border-color 0.2s;
+        }
+
+        .stat-card:hover { border-color: var(--purple); }
+
+        .stat-icon { font-size: 28px; margin-bottom: 12px; }
+
+        .stat-value {
+            font-family: 'Bebas Neue', sans-serif;
+            font-size: 42px;
+            letter-spacing: 2px;
+            line-height: 1;
+            color: var(--purple-light);
+            margin-bottom: 4px;
+        }
+
+        .stat-label {
+            font-size: 12px;
+            color: var(--muted);
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        /* Section */
+        .section {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            padding: 24px;
+            margin-bottom: 20px;
+        }
+
+        .section-title {
+            font-size: 11px;
+            font-weight: 600;
+            color: var(--muted);
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            margin-bottom: 20px;
+        }
+
+        /* Status bars */
+        .status-row {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            margin-bottom: 14px;
+        }
+
+        .status-label {
+            font-size: 13px;
+            width: 130px;
+            min-width: 130px;
+            color: var(--text);
+        }
+
+        .bar-track {
+            flex: 1;
+            height: 8px;
+            background: var(--surface2);
+            border-radius: 10px;
+            overflow: hidden;
+        }
+
+        .bar-fill {
+            height: 100%;
+            border-radius: 10px;
+            background: linear-gradient(90deg, var(--purple), var(--purple-light));
+            transition: width 1s ease;
+        }
+
+        .status-count {
+            font-size: 13px;
+            color: var(--muted);
+            width: 30px;
+            text-align: right;
+        }
+
+        /* Type breakdown */
+        .type-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 12px;
+        }
+
+        .type-card {
+            background: var(--surface2);
+            border-radius: 10px;
+            padding: 16px;
+            text-align: center;
+            border: 1px solid var(--border);
+        }
+
+        .type-icon { font-size: 24px; margin-bottom: 8px; }
+
+        .type-value {
+            font-family: 'Bebas Neue', sans-serif;
+            font-size: 32px;
+            color: var(--purple-light);
+            line-height: 1;
+            margin-bottom: 4px;
+        }
+
+        .type-label { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; }
+
+        /* Genres */
+        .genre-grid {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .genre-pill {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 16px;
+            background: var(--surface2);
+            border: 1px solid var(--border);
+            border-radius: 30px;
+            font-size: 13px;
+            transition: border-color 0.2s;
+        }
+
+        .genre-pill:hover { border-color: var(--purple); }
+
+        .genre-count {
+            background: var(--purple);
+            color: white;
+            font-size: 11px;
+            font-weight: 600;
+            padding: 2px 8px;
+            border-radius: 10px;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 100px 20px;
+            color: var(--muted);
+            font-size: 16px;
+        }
+
+        .empty {
+            text-align: center;
+            padding: 60px 20px;
+            color: var(--muted);
+        }
+        /* Page transitions */
+body {
+    animation: pageFadeIn 0.3s ease forwards;
+}
+
+@keyframes pageFadeIn {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.movie-card, .stat-card, .section {
+    opacity: 0;
+    animation: cardPop 0.3s ease forwards;
+}
+
+.movie-card:nth-child(1), .stat-card:nth-child(1) { animation-delay: 0.05s; }
+.movie-card:nth-child(2), .stat-card:nth-child(2) { animation-delay: 0.1s; }
+.movie-card:nth-child(3), .stat-card:nth-child(3) { animation-delay: 0.15s; }
+.movie-card:nth-child(4), .stat-card:nth-child(4) { animation-delay: 0.2s; }
+.movie-card:nth-child(5), .stat-card:nth-child(5) { animation-delay: 0.25s; }
+.movie-card:nth-child(6), .stat-card:nth-child(6) { animation-delay: 0.3s; }
+.section:nth-child(1) { animation-delay: 0.1s; }
+.section:nth-child(2) { animation-delay: 0.2s; }
+.section:nth-child(3) { animation-delay: 0.3s; }
+.section:nth-child(4) { animation-delay: 0.4s; }
+
+@keyframes cardPop {
+    from { opacity: 0; transform: translateY(12px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+    </style>
+</head>
+<body>
+    <nav>
+        <span class="nav-logo">MEDIA HUB</span>
+        <a href="/">Home</a>
+        <a href="/discover">Search</a>
+        <a href="/watchlist-page">Watchlist</a>
+        <a href="/stats">Stats</a>
+    </nav>
+
+    <div class="container">
+        <h1 class="page-title">YOUR STATS</h1>
+        <p class="page-subtitle">A breakdown of everything in your list</p>
+
+        <div id="loading" class="loading">Loading your stats...</div>
+        <div id="content" style="display:none;">
+
+            <!-- Top stat cards -->
+            <div class="stats-grid" id="stat-cards"></div>
+
+            <!-- Status breakdown -->
+            <div class="section">
+                <p class="section-title">Status Breakdown</p>
+                <div id="status-bars"></div>
+            </div>
+
+            <!-- Type breakdown -->
+            <div class="section">
+                <p class="section-title">By Media Type</p>
+                <div class="type-grid" id="type-grid"></div>
+            </div>
+
+            <!-- Top genres -->
+            <div class="section">
+                <p class="section-title">Top Genres</p>
+                <div class="genre-grid" id="genre-grid"></div>
+            </div>
+
+        </div>
+    </div>
+
+    <script>
+        const statusLabels = {
+            watched: "Watched",
+            completed: "Completed",
+            plan_to_watch: "Plan to Watch",
+            watching: "Watching",
+            dropped: "Dropped"
+        };
+
+        async function loadStats() {
+            const response = await fetch("/api/stats");
+            const data = await response.json();
+
+            if (data.total === 0) {
+                document.getElementById("loading").innerHTML = `<div class="empty"><p>No data yet — add some titles to your watchlist first!</p></div>`;
+                return;
+            }
+
+            // Top stat cards
+            const cards = [
+                { icon: "🎬", value: data.total, label: "Total in List" },
+                { icon: "✅", value: (data.status_counts["watched"] || 0) + (data.status_counts["completed"] || 0), label: "Finished" },
+                { icon: "📋", value: data.status_counts["plan_to_watch"] || 0, label: "Plan to Watch" },
+                { icon: "⭐", value: data.avg_rating || "—", label: "Avg Rating" },
+            ];
+
+            document.getElementById("stat-cards").innerHTML = cards.map(c => `
+                <div class="stat-card">
+                    <div class="stat-icon">${c.icon}</div>
+                    <div class="stat-value">${c.value}</div>
+                    <div class="stat-label">${c.label}</div>
+                </div>
+            `).join("");
+
+            // Status bars
+            const statusEntries = Object.entries(data.status_counts).sort((a, b) => b[1] - a[1]);
+            const maxCount = Math.max(...statusEntries.map(e => e[1]));
+            document.getElementById("status-bars").innerHTML = statusEntries.map(([status, count]) => `
+                <div class="status-row">
+                    <span class="status-label">${statusLabels[status] || status}</span>
+                    <div class="bar-track">
+                        <div class="bar-fill" style="width: ${(count / maxCount) * 100}%"></div>
+                    </div>
+                    <span class="status-count">${count}</span>
+                </div>
+            `).join("");
+
+            // Type breakdown
+            document.getElementById("type-grid").innerHTML = `
+                <div class="type-card">
+                    <div class="type-icon">🎬</div>
+                    <div class="type-value">${data.type_counts.movie}</div>
+                    <div class="type-label">Movies</div>
+                </div>
+                <div class="type-card">
+                    <div class="type-icon">📺</div>
+                    <div class="type-value">${data.type_counts.tv}</div>
+                    <div class="type-label">TV Shows</div>
+                </div>
+                <div class="type-card">
+                    <div class="type-icon">⛩️</div>
+                    <div class="type-value">${data.type_counts.anime}</div>
+                    <div class="type-label">Anime</div>
+                </div>
+            `;
+
+            // Genres
+            if (data.top_genres.length === 0) {
+                document.getElementById("genre-grid").innerHTML = `<p style="color:var(--muted); font-size:13px;">Not enough data yet</p>`;
+            } else {
+                document.getElementById("genre-grid").innerHTML = data.top_genres.map(([genre, count]) => `
+                    <div class="genre-pill">
+                        ${genre} <span class="genre-count">${count}</span>
+                    </div>
+                `).join("");
+            }
+
+            document.getElementById("loading").style.display = "none";
+            document.getElementById("content").style.display = "block";
+        }
+
+        loadStats();
+    </script>
+</body>
+</html>
