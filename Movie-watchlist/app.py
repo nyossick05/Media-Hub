@@ -3,7 +3,8 @@ import sqlite3
 import os
 import requests
 from dotenv import load_dotenv
-import os
+import psycopg2
+from psycopg2.extras import RealDictCursor
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 DB_PATH = os.path.join(BASE_DIR, "watchlist.db")
 load_dotenv()
@@ -11,16 +12,20 @@ load_dotenv()
 app = Flask(__name__)
 API_KEY = os.getenv("TMDB_API_KEY")
 
+def get_db():
+    conn = psycopg2.connect(os.getenv("DATABASE_URL"), sslmode="require")
+    return conn
+
 def init_db():
-    conn = sqlite3.connect(DB_PATH)
+    conn = get_db()
     c = conn.cursor()
     c.execute('''
         CREATE TABLE IF NOT EXISTS movies (
-            id INTEGER PRIMARY KEY,
+            id SERIAL PRIMARY KEY,
             tmdb_id INTEGER,
             title TEXT,
             poster_path TEXT,
-            status TEXT DEFAULT 'want_to_watch',
+            status TEXT DEFAULT 'plan_to_watch',
             rating INTEGER,
             review TEXT,
             media_type TEXT DEFAULT 'movie'
@@ -72,8 +77,8 @@ def search():
 @app.route("/add", methods=["POST"])
 def add_movie():
     data = request.get_json()
-    conn = sqlite3.connect(DB_PATH)
-    c = conn.cursor()
+    conn = get_db()
+    c = conn.cursor(cursor_factory=RealDictCursor)
     try:
         c.execute('''
             INSERT INTO movies (tmdb_id, title, poster_path, status, media_type)
@@ -88,24 +93,24 @@ def add_movie():
 
 @app.route("/watchlist")
 def watchlist():
-    conn = sqlite3.connect(DB_PATH)
-    c = conn.cursor()
+    conn = get_db()
+    c = conn.cursor(cursor_factory=RealDictCursor)
     c.execute("SELECT * FROM movies")
     rows = c.fetchall()
     conn.close()
     movies = [
-        {
-            "id": r[0],
-            "tmdb_id": r[1],
-            "title": r[2],
-            "poster": r[3],
-            "status": r[4],
-            "rating": r[5],
-            "review": r[6],
-            "media_type": r[7]
-        }
-        for r in rows
-    ]
+    {
+        "id": r["id"],
+        "tmdb_id": r["tmdb_id"],
+        "title": r["title"],
+        "poster": r["poster_path"],
+        "status": r["status"],
+        "rating": r["rating"],
+        "review": r["review"],
+        "media_type": r["media_type"]
+    }
+    for r in rows
+]
     return jsonify(movies)
 
 @app.route("/watchlist-page")
@@ -115,8 +120,8 @@ def watchlist_page():
 @app.route("/update", methods=["POST"])
 def update_movie():
     data = request.get_json()
-    conn = sqlite3.connect(DB_PATH)
-    c = conn.cursor()
+    conn = get_db()
+    c = conn.cursor(cursor_factory=RealDictCursor)
     c.execute('''
         UPDATE movies
         SET status = ?, rating = ?, review = ?
@@ -129,8 +134,8 @@ def update_movie():
 @app.route("/delete", methods=["POST"])
 def delete_movie():
     data = request.get_json()
-    conn = sqlite3.connect(DB_PATH)
-    c = conn.cursor()
+    conn = get_db()
+    c = conn.cursor(cursor_factory=RealDictCursor)
     c.execute("DELETE FROM movies WHERE id = ?", (data["id"],))
     conn.commit()
     conn.close()
@@ -185,25 +190,20 @@ def stats():
 
 @app.route("/api/stats")
 def api_stats():
-    conn = sqlite3.connect(DB_PATH)
-    c = conn.cursor()
+    conn = get_db()
+    c = conn.cursor(cursor_factory=RealDictCursor)
     c.execute("SELECT * FROM movies")
     rows = c.fetchall()
     conn.close()
 
     movies = [
-        {
-            "id": r[0],
-            "tmdb_id": r[1],
-            "title": r[2],
-            "poster": r[3],
-            "status": r[4],
-            "rating": r[5],
-            "review": r[6],
-            "media_type": r[7]
-        }
-        for r in rows
-    ]
+    {
+        "tmdb_id": r["tmdb_id"],
+        "media_type": r["media_type"],
+        "rating": r["rating"]
+    }
+    for r in rows
+]
 
     total = len(movies)
     status_counts = {}
@@ -296,8 +296,8 @@ def trending(media_type):
     return jsonify(media)
 @app.route("/api/recommendations")
 def recommendations():
-    conn = sqlite3.connect(DB_PATH)
-    c = conn.cursor()
+    conn = get_db()
+    c = conn.cursor(cursor_factory=RealDictCursor)
     c.execute("SELECT tmdb_id, media_type, rating FROM movies ORDER BY rating DESC LIMIT 10")
     rows = c.fetchall()
     conn.close()
