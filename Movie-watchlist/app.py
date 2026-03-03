@@ -12,25 +12,50 @@ load_dotenv()
 app = Flask(__name__)
 API_KEY = os.getenv("TMDB_API_KEY")
 
+DATABASE_URL = os.getenv("DATABASE_URL")
+USE_POSTGRES = DATABASE_URL is not None
+
 def get_db():
-    conn = psycopg2.connect(os.getenv("DATABASE_URL"), sslmode="require")
+    if USE_POSTGRES:
+        conn = psycopg2.connect(DATABASE_URL, sslmode="require")
+    else:
+        conn = sqlite3.connect(DB_PATH)
     return conn
 
 def init_db():
     conn = get_db()
-    c = conn.cursor()
-    c.execute('''
-        CREATE TABLE IF NOT EXISTS movies (
-            id SERIAL PRIMARY KEY,
-            tmdb_id INTEGER,
-            title TEXT,
-            poster_path TEXT,
-            status TEXT DEFAULT 'plan_to_watch',
-            rating INTEGER,
-            review TEXT,
-            media_type TEXT DEFAULT 'movie'
-        )
-    ''')
+    if USE_POSTGRES:
+        from psycopg2.extras import RealDictCursor
+        c = conn.cursor(cursor_factory=RealDictCursor)
+    else:
+        conn.row_factory = sqlite3.Row
+        c = conn.cursor()
+    if USE_POSTGRES:
+        c.execute('''
+            CREATE TABLE IF NOT EXISTS movies (
+                id SERIAL PRIMARY KEY,
+                tmdb_id INTEGER,
+                title TEXT,
+                poster_path TEXT,
+                status TEXT DEFAULT 'plan_to_watch',
+                rating INTEGER,
+                review TEXT,
+                media_type TEXT DEFAULT 'movie'
+            )
+        ''')
+    else:
+        c.execute('''
+            CREATE TABLE IF NOT EXISTS movies (
+                id INTEGER PRIMARY KEY,
+                tmdb_id INTEGER,
+                title TEXT,
+                poster_path TEXT,
+                status TEXT DEFAULT 'plan_to_watch',
+                rating INTEGER,
+                review TEXT,
+                media_type TEXT DEFAULT 'movie'
+            )
+        ''')
     conn.commit()
     conn.close()
 
@@ -78,7 +103,12 @@ def search():
 def add_movie():
     data = request.get_json()
     conn = get_db()
-    c = conn.cursor(cursor_factory=RealDictCursor)
+    if USE_POSTGRES:
+        from psycopg2.extras import RealDictCursor
+        c = conn.cursor(cursor_factory=RealDictCursor)
+    else:
+        conn.row_factory = sqlite3.Row
+        c = conn.cursor()
     try:
         c.execute('''
             INSERT INTO movies (tmdb_id, title, poster_path, status, media_type)
@@ -94,7 +124,12 @@ def add_movie():
 @app.route("/watchlist")
 def watchlist():
     conn = get_db()
-    c = conn.cursor(cursor_factory=RealDictCursor)
+    if USE_POSTGRES:
+        from psycopg2.extras import RealDictCursor
+        c = conn.cursor(cursor_factory=RealDictCursor)
+    else:
+        conn.row_factory = sqlite3.Row
+        c = conn.cursor()
     c.execute("SELECT * FROM movies")
     rows = c.fetchall()
     conn.close()
@@ -121,7 +156,12 @@ def watchlist_page():
 def update_movie():
     data = request.get_json()
     conn = get_db()
-    c = conn.cursor(cursor_factory=RealDictCursor)
+    if USE_POSTGRES:
+        from psycopg2.extras import RealDictCursor
+        c = conn.cursor(cursor_factory=RealDictCursor)
+    else:
+        conn.row_factory = sqlite3.Row
+        c = conn.cursor()
     c.execute('''
         UPDATE movies
         SET status = ?, rating = ?, review = ?
@@ -135,7 +175,12 @@ def update_movie():
 def delete_movie():
     data = request.get_json()
     conn = get_db()
-    c = conn.cursor(cursor_factory=RealDictCursor)
+    if USE_POSTGRES:
+        from psycopg2.extras import RealDictCursor
+        c = conn.cursor(cursor_factory=RealDictCursor)
+    else:
+        conn.row_factory = sqlite3.Row
+        c = conn.cursor()
     c.execute("DELETE FROM movies WHERE id = ?", (data["id"],))
     conn.commit()
     conn.close()
@@ -191,7 +236,12 @@ def stats():
 @app.route("/api/stats")
 def api_stats():
     conn = get_db()
-    c = conn.cursor(cursor_factory=RealDictCursor)
+    if USE_POSTGRES:
+        from psycopg2.extras import RealDictCursor
+        c = conn.cursor(cursor_factory=RealDictCursor)
+    else:
+        conn.row_factory = sqlite3.Row
+        c = conn.cursor()
     c.execute("SELECT * FROM movies")
     rows = c.fetchall()
     conn.close()
@@ -297,7 +347,12 @@ def trending(media_type):
 @app.route("/api/recommendations")
 def recommendations():
     conn = get_db()
-    c = conn.cursor(cursor_factory=RealDictCursor)
+    if USE_POSTGRES:
+        from psycopg2.extras import RealDictCursor
+        c = conn.cursor(cursor_factory=RealDictCursor)
+    else:
+        conn.row_factory = sqlite3.Row
+        c = conn.cursor()
     c.execute("SELECT tmdb_id, media_type, rating FROM movies ORDER BY rating DESC LIMIT 10")
     rows = c.fetchall()
     conn.close()
@@ -355,6 +410,7 @@ def recommendations():
                 pass
 
     return jsonify(results[:40])
+    
     
 
 if __name__ == "__main__":
