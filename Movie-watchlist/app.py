@@ -10,7 +10,7 @@ DB_PATH = os.path.join(BASE_DIR, "watchlist.db")
 load_dotenv()
 DATABASE_URL = os.getenv("DATABASE_URL")
 USE_POSTGRES = DATABASE_URL is not None
-print(f"DEBUG DATABASE_URL: {os.getenv('DATABASE_URL')}")
+print(f"DEBUG DATABASE_URL: {os.getenv('postgresql://media_hub_db_baa6_user:MbQKueSl3Ocl4fPY3THdqJe7ULxHIMCD@dpg-d6jmuvogjchc73avqau0-a.virginia-postgres.render.com/media_hub_db_baa6')}")
 print(f"DEBUG USE_POSTGRES: {USE_POSTGRES}")
 
 
