@@ -8,6 +8,8 @@ from psycopg2.extras import RealDictCursor
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 DB_PATH = os.path.join(BASE_DIR, "watchlist.db")
 load_dotenv()
+print(f"DEBUG DATABASE_URL: {os.getenv('DATABASE_URL')}")
+print(f"DEBUG USE_POSTGRES: {USE_POSTGRES}")
 
 app = Flask(__name__)
 API_KEY = os.getenv("TMDB_API_KEY")
@@ -140,19 +142,22 @@ def watchlist():
     c.execute("SELECT * FROM movies")
     rows = c.fetchall()
     conn.close()
+    print(f"DEBUG: Found {len(rows)} rows")
+    if rows:
+        print(f"DEBUG: First row: {rows[0]}")
     movies = [
-    {
-        "id": r["id"],
-        "tmdb_id": r["tmdb_id"],
-        "title": r["title"],
-        "poster": r["poster_path"],
-        "status": r["status"],
-        "rating": r["rating"],
-        "review": r["review"],
-        "media_type": r["media_type"]
-    }
-    for r in rows
-]
+        {
+            "id": r["id"],
+            "tmdb_id": r["tmdb_id"],
+            "title": r["title"],
+            "poster": r["poster_path"],
+            "status": r["status"],
+            "rating": r["rating"],
+            "review": r["review"],
+            "media_type": r["media_type"]
+        }
+        for r in rows
+    ]
     return jsonify(movies)
 
 @app.route("/watchlist-page")
