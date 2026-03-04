@@ -8,6 +8,10 @@ from psycopg2.extras import RealDictCursor
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 DB_PATH = os.path.join(BASE_DIR, "watchlist.db")
 load_dotenv()
+DATABASE_URL = os.getenv("DATABASE_URL")
+USE_POSTGRES = DATABASE_URL is not None
+print(f"DEBUG DATABASE_URL: {os.getenv('DATABASE_URL')}")
+print(f"DEBUG USE_POSTGRES: {USE_POSTGRES}")
 
 
 app = Flask(__name__)
