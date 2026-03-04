@@ -552,10 +552,22 @@
         ];
 
         async function loadWatchlist() {
-            const response = await fetch("/watchlist");
-            allMovies = await response.json();
-            applyFilters();
-        }
+            // Show skeleton while loading
+            const container = document.getElementById("movies-container");
+            container.innerHTML = Array(12).fill(`
+                <div style="background:var(--surface); border-radius:10px; border:1px solid var(--border); overflow:hidden; opacity:0.5;">
+                    <div style="aspect-ratio:2/3; background:var(--surface2);"></div>
+                    <div style="padding:10px;">
+                        <div style="height:10px; background:var(--surface2); border-radius:4px; margin-bottom:8px;"></div>
+                        <div style="height:10px; background:var(--surface2); border-radius:4px; width:60%;"></div>
+                </div>
+            </div>
+    `).join("");
+
+    const response = await fetch("/watchlist");
+    allMovies = await response.json();
+    applyFilters();
+}
 
         function filterType(type, btn) {
             activeType = type;
