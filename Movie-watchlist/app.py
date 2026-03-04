@@ -110,13 +110,20 @@ def add_movie():
         conn.row_factory = sqlite3.Row
         c = conn.cursor()
     try:
-        c.execute('''
-            INSERT INTO movies (tmdb_id, title, poster_path, status, media_type)
-            VALUES (?, ?, ?, 'plan_to_watch', ?)
-        ''', (data["tmdb_id"], data["title"], data["poster"], data["media_type"]))
+        if USE_POSTGRES:
+            c.execute('''
+                INSERT INTO movies (tmdb_id, title, poster_path, status, media_type)
+                VALUES (%s, %s, %s, 'plan_to_watch', %s)
+            ''', (data["tmdb_id"], data["title"], data["poster"], data["media_type"]))
+        else:
+            c.execute('''
+                INSERT INTO movies (tmdb_id, title, poster_path, status, media_type)
+                VALUES (?, ?, ?, 'plan_to_watch', ?)
+            ''', (data["tmdb_id"], data["title"], data["poster"], data["media_type"]))
         conn.commit()
         result = {"success": True, "message": f"{data['title']} added!"}
-    except sqlite3.IntegrityError:
+    except Exception as e:
+        conn.rollback()
         result = {"success": False, "message": "Already in your watchlist!"}
     conn.close()
     return jsonify(result)
@@ -159,14 +166,19 @@ def update_movie():
     if USE_POSTGRES:
         from psycopg2.extras import RealDictCursor
         c = conn.cursor(cursor_factory=RealDictCursor)
+        c.execute('''
+            UPDATE movies
+            SET status = %s, rating = %s, review = %s
+            WHERE id = %s
+        ''', (data["status"], data["rating"], data["review"], data["id"]))
     else:
         conn.row_factory = sqlite3.Row
         c = conn.cursor()
-    c.execute('''
-        UPDATE movies
-        SET status = ?, rating = ?, review = ?
-        WHERE id = ?
-    ''', (data["status"], data["rating"], data["review"], data["id"]))
+        c.execute('''
+            UPDATE movies
+            SET status = ?, rating = ?, review = ?
+            WHERE id = ?
+        ''', (data["status"], data["rating"], data["review"], data["id"]))
     conn.commit()
     conn.close()
     return jsonify({"success": True, "message": "Updated!"})
@@ -178,13 +190,15 @@ def delete_movie():
     if USE_POSTGRES:
         from psycopg2.extras import RealDictCursor
         c = conn.cursor(cursor_factory=RealDictCursor)
+        c.execute("DELETE FROM movies WHERE id = %s", (data["id"],))
     else:
         conn.row_factory = sqlite3.Row
         c = conn.cursor()
-    c.execute("DELETE FROM movies WHERE id = ?", (data["id"],))
+        c.execute("DELETE FROM movies WHERE id = ?", (data["id"],))
     conn.commit()
     conn.close()
     return jsonify({"success": True, "message": "Removed from watchlist!"})
+
 @app.route("/details")
 def details():
     tmdb_id = request.args.get("id")
