@@ -376,14 +376,15 @@ def recommendations():
     else:
         conn.row_factory = sqlite3.Row
         c = conn.cursor()
+    c.execute("SELECT tmdb_id FROM movies")
+    all_rows = c.fetchall()
+    watched_ids = set(str(r["tmdb_id"]) for r in all_rows)
+
     c.execute("SELECT tmdb_id, media_type, rating FROM movies ORDER BY rating DESC LIMIT 10")
     rows = c.fetchall()
-    conn.close()
 
     if not rows:
         return jsonify([])
-
-    watched_ids = set(str(r["tmdb_id"]) for r in rows)
     results = []
     seen_ids = set()
 
