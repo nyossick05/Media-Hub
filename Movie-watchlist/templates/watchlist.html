@@ -652,6 +652,7 @@
         }
 
         function openModal(movie) {
+            document.body.style.overflow = 'hidden';
             currentMovie = movie;
             currentRating = movie.rating || 0;
 
@@ -702,11 +703,13 @@
 
         function closeModal(e) {
             if (e.target.id === "modal-overlay") {
+                document.body.style.overflow = '';
                 document.getElementById("modal-overlay").style.display = "none";
             }
         }
 
         async function saveMovie() {
+            document.body.style.overflow = '';
             const status = document.getElementById("modal-status").value;
             const review = document.getElementById("modal-review").value;
             const response = await fetch("/update", {
@@ -720,6 +723,7 @@
         }
 
         async function deleteMovie() {
+            document.body.style.overflow = '';
             if (!confirm("Remove this from your watchlist?")) return;
             await fetch("/delete", {
                 method: "POST",
