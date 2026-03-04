@@ -272,10 +272,11 @@ def api_stats():
     {
         "tmdb_id": r["tmdb_id"],
         "media_type": r["media_type"],
-        "rating": r["rating"]
+        "rating": r["rating"],
+        "status": r["status"]
     }
     for r in rows
-]
+    ]
 
     total = len(movies)
     status_counts = {}
@@ -382,15 +383,19 @@ def recommendations():
     if not rows:
         return jsonify([])
 
-    watched_ids = set(str(r[0]) for r in rows)
+    watched_ids = set(str(r["tmdb_id"]) for r in rows)
     results = []
     seen_ids = set()
 
-    for tmdb_id, media_type, rating in rows:
+    for r in rows:
+        tmdb_id = r["tmdb_id"]
+        media_type = r["media_type"]
+        rating = r["rating"]
+
         if media_type == "anime":
             try:
-                r = requests.get(f"https://api.jikan.moe/v4/anime/{tmdb_id}/recommendations")
-                items = r.json().get("data", [])[:5]
+                resp = requests.get(f"https://api.jikan.moe/v4/anime/{tmdb_id}/recommendations")
+                items = resp.json().get("data", [])[:5]
                 for item in items:
                     entry = item.get("entry", {})
                     mid = str(entry.get("mal_id"))
@@ -410,11 +415,11 @@ def recommendations():
         else:
             endpoint = "movie" if media_type == "movie" else "tv"
             try:
-                r = requests.get(
+                resp = requests.get(
                     f"https://api.themoviedb.org/3/{endpoint}/{tmdb_id}/recommendations",
                     params={"api_key": API_KEY}
                 )
-                items = r.json().get("results", [])[:5]
+                items = resp.json().get("results", [])[:5]
                 for item in items:
                     mid = str(item.get("id"))
                     if mid in watched_ids or mid in seen_ids:
@@ -432,7 +437,6 @@ def recommendations():
                 pass
 
     return jsonify(results[:40])
-    
     
 with app.app_context():
     init_db()
