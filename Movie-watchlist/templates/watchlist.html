@@ -693,7 +693,7 @@
             const response = await fetch("/update", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ id: currentMovie.id, status, rating: currentRating, review })
+                body: JSON.stringify({ id: currentMovie.id, status, rating: currentRating || null, review })
             });
             const result = await response.json();
             document.getElementById("modal-overlay").style.display = "none";
