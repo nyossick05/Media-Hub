@@ -1,6 +1,7 @@
 from flask import Flask, render_template, request, jsonify
 import sqlite3
 import os
+import random
 import requests
 from dotenv import load_dotenv
 import psycopg2
@@ -376,68 +377,105 @@ def recommendations():
     else:
         conn.row_factory = sqlite3.Row
         c = conn.cursor()
+
+    # Get ALL items already in watchlist to exclude them
     c.execute("SELECT tmdb_id FROM movies")
     all_rows = c.fetchall()
     watched_ids = set(str(r["tmdb_id"]) for r in all_rows)
 
-    c.execute("SELECT tmdb_id, media_type, rating FROM movies ORDER BY rating DESC LIMIT 10")
+    # Get all rated items (not just top 10) — weight higher-rated ones more heavily
+    c.execute("SELECT tmdb_id, media_type, rating FROM movies WHERE rating IS NOT NULL ORDER BY rating DESC")
     rows = c.fetchall()
+    conn.close()
 
     if not rows:
         return jsonify([])
+
+    # Build a weighted seed list: a title rated 9 appears 9 times, rated 5 appears 5 times, etc.
+    # Then shuffle so every call picks different seeds first
+    weighted_seeds = []
+    for r in rows:
+        weight = r["rating"] if r["rating"] else 1
+        weighted_seeds.extend([r] * weight)
+    random.shuffle(weighted_seeds)
+
+    # Deduplicate seeds while preserving shuffle order
+    seen_seeds = set()
+    seeds = []
+    for r in weighted_seeds:
+        if r["tmdb_id"] not in seen_seeds:
+            seen_seeds.add(r["tmdb_id"])
+            seeds.append(r)
+
     results = []
     seen_ids = set()
 
-    for r in rows:
+    for r in seeds:
         tmdb_id = r["tmdb_id"]
         media_type = r["media_type"]
-        rating = r["rating"]
 
         if media_type == "anime":
-            try:
-                resp = requests.get(f"https://api.jikan.moe/v4/anime/{tmdb_id}/recommendations")
-                items = resp.json().get("data", [])[:5]
-                for item in items:
-                    entry = item.get("entry", {})
-                    mid = str(entry.get("mal_id"))
-                    if mid in watched_ids or mid in seen_ids:
-                        continue
-                    seen_ids.add(mid)
-                    results.append({
-                        "tmdb_id": entry.get("mal_id"),
-                        "title": entry.get("title"),
-                        "poster": entry.get("images", {}).get("jpg", {}).get("image_url"),
-                        "media_type": "anime",
-                        "year": "",
-                        "rating": None
-                    })
-            except:
-                pass
+            # Fetch both recommendations and similar (top anime by same genres)
+            endpoints_to_try = [
+                f"https://api.jikan.moe/v4/anime/{tmdb_id}/recommendations",
+            ]
+            for url in endpoints_to_try:
+                try:
+                    resp = requests.get(url, timeout=5)
+                    items = resp.json().get("data", [])
+                    random.shuffle(items)
+                    for item in items[:8]:
+                        entry = item.get("entry", {})
+                        mid = str(entry.get("mal_id"))
+                        if mid in watched_ids or mid in seen_ids:
+                            continue
+                        seen_ids.add(mid)
+                        results.append({
+                            "tmdb_id": entry.get("mal_id"),
+                            "title": entry.get("title"),
+                            "poster": entry.get("images", {}).get("jpg", {}).get("image_url"),
+                            "media_type": "anime",
+                            "year": "",
+                            "rating": None
+                        })
+                except:
+                    pass
         else:
             endpoint = "movie" if media_type == "movie" else "tv"
-            try:
-                resp = requests.get(
-                    f"https://api.themoviedb.org/3/{endpoint}/{tmdb_id}/recommendations",
-                    params={"api_key": API_KEY}
-                )
-                items = resp.json().get("results", [])[:5]
-                for item in items:
-                    mid = str(item.get("id"))
-                    if mid in watched_ids or mid in seen_ids:
-                        continue
-                    seen_ids.add(mid)
-                    results.append({
-                        "tmdb_id": item.get("id"),
-                        "title": item.get("title") or item.get("name"),
-                        "poster": f"https://image.tmdb.org/t/p/w300{item['poster_path']}" if item.get("poster_path") else None,
-                        "year": (item.get("release_date") or item.get("first_air_date") or "")[:4],
-                        "rating": round(item.get("vote_average", 0), 1),
-                        "media_type": media_type
-                    })
-            except:
-                pass
+            # Hit both /recommendations and /similar for more variety
+            for api_path in ["recommendations", "similar"]:
+                try:
+                    resp = requests.get(
+                        f"https://api.themoviedb.org/3/{endpoint}/{tmdb_id}/{api_path}",
+                        params={"api_key": API_KEY},
+                        timeout=5
+                    )
+                    items = resp.json().get("results", [])
+                    random.shuffle(items)
+                    for item in items[:6]:
+                        mid = str(item.get("id"))
+                        if mid in watched_ids or mid in seen_ids:
+                            continue
+                        seen_ids.add(mid)
+                        results.append({
+                            "tmdb_id": item.get("id"),
+                            "title": item.get("title") or item.get("name"),
+                            "poster": f"https://image.tmdb.org/t/p/w300{item['poster_path']}" if item.get("poster_path") else None,
+                            "year": (item.get("release_date") or item.get("first_air_date") or "")[:4],
+                            "rating": round(item.get("vote_average", 0), 1),
+                            "media_type": media_type
+                        })
+                except:
+                    pass
 
+        # Stop seeding once we have plenty of candidates
+        if len(results) >= 80:
+            break
+
+    # Shuffle final results so it's not always the same order
+    random.shuffle(results)
     return jsonify(results[:40])
+
     
 with app.app_context():
     init_db()
