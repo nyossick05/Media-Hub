@@ -491,7 +491,6 @@
                     <button class="active" id="status-all" onclick="filterStatus('all', this)">All</button>
                     <button onclick="filterStatus('plan_to_watch', this)">Plan to Watch</button>
                     <button onclick="filterStatus('watching', this)">Watching</button>
-                    <button onclick="filterStatus('watched', this)">Watched</button>
                     <button onclick="filterStatus('completed', this)">Completed</button>
                     <button onclick="filterStatus('dropped', this)">Dropped</button>
                 </div>
@@ -546,7 +545,7 @@
 
         const movieStatuses = [
             { value: "plan_to_watch", label: "Plan to Watch" },
-            { value: "watched", label: "Watched" }
+            { value: "completed", label: "Completed" }
         ];
 
         const tvAnimeStatuses = [
