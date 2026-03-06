@@ -271,33 +271,8 @@
                 } catch(e) {}
             });
         }
-
-        async function loadStats() {
-            try {
-                const res = await fetch("/api/stats");
-                const data = await res.json();
-                const bar = document.getElementById("stats-bar");
-                bar.innerHTML = `
-                    <div class="stat-item">
-                        <div class="stat-num">${data.total}</div>
-                        <div class="stat-lbl">Total Titles</div>
-                    </div>
-                    <div class="stat-divider"></div>
-                    <div class="stat-item">
-                        <div class="stat-num">${(data.status_counts["watched"] || 0) + (data.status_counts["completed"] || 0)}</div>
-                        <div class="stat-lbl">Finished</div>
-                    </div>
-                    <div class="stat-divider"></div>
-                    <div class="stat-item">
-                        <div class="stat-num">${data.avg_rating || "—"}</div>
-                        <div class="stat-lbl">Avg Rating</div>
-                    </div>
-                `;
-            } catch(e) {}
-        }
-
+        
         loadPosters();
-        loadStats();
     </script>
 </body>
 </html>
