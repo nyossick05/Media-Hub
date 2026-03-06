@@ -6,14 +6,10 @@ import requests
 from dotenv import load_dotenv
 import psycopg2
 from psycopg2.extras import RealDictCursor
+
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 DB_PATH = os.path.join(BASE_DIR, "watchlist.db")
 load_dotenv()
-DATABASE_URL = os.getenv("postgresql://media_hub_db_baa6_user:MbQKueSl3Ocl4fPY3THdqJe7ULxHIMCD@dpg-d6jmuvogjchc73avqau0-a.virginia-postgres.render.com/media_hub_db_baa6")
-USE_POSTGRES = DATABASE_URL is not None
-print(f"DEBUG DATABASE_URL: {os.getenv('postgresql://media_hub_db_baa6_user:MbQKueSl3Ocl4fPY3THdqJe7ULxHIMCD@dpg-d6jmuvogjchc73avqau0-a.virginia-postgres.render.com/media_hub_db_baa6')}")
-print(f"DEBUG USE_POSTGRES: {USE_POSTGRES}")
-
 
 app = Flask(__name__)
 API_KEY = os.getenv("TMDB_API_KEY")
@@ -31,12 +27,7 @@ def get_db():
 def init_db():
     conn = get_db()
     if USE_POSTGRES:
-        from psycopg2.extras import RealDictCursor
         c = conn.cursor(cursor_factory=RealDictCursor)
-    else:
-        conn.row_factory = sqlite3.Row
-        c = conn.cursor()
-    if USE_POSTGRES:
         c.execute('''
             CREATE TABLE IF NOT EXISTS movies (
                 id SERIAL PRIMARY KEY,
@@ -46,10 +37,17 @@ def init_db():
                 status TEXT DEFAULT 'plan_to_watch',
                 rating INTEGER,
                 review TEXT,
-                media_type TEXT DEFAULT 'movie'
+                media_type TEXT DEFAULT 'movie',
+                genres TEXT
             )
         ''')
+        # Add genres column if it doesn't exist yet (for existing DBs)
+        c.execute('''
+            ALTER TABLE movies ADD COLUMN IF NOT EXISTS genres TEXT
+        ''')
     else:
+        conn.row_factory = sqlite3.Row
+        c = conn.cursor()
         c.execute('''
             CREATE TABLE IF NOT EXISTS movies (
                 id INTEGER PRIMARY KEY,
@@ -59,11 +57,30 @@ def init_db():
                 status TEXT DEFAULT 'plan_to_watch',
                 rating INTEGER,
                 review TEXT,
-                media_type TEXT DEFAULT 'movie'
+                media_type TEXT DEFAULT 'movie',
+                genres TEXT
             )
         ''')
     conn.commit()
     conn.close()
+
+def fetch_genres(tmdb_id, media_type):
+    """Fetch genres from TMDB/Jikan at add-time and return as comma-separated string."""
+    try:
+        if media_type == "anime":
+            r = requests.get(f"https://api.jikan.moe/v4/anime/{tmdb_id}", timeout=5)
+            genres = [g["name"] for g in r.json().get("data", {}).get("genres", [])]
+        else:
+            endpoint = "movie" if media_type == "movie" else "tv"
+            r = requests.get(
+                f"https://api.themoviedb.org/3/{endpoint}/{tmdb_id}",
+                params={"api_key": API_KEY},
+                timeout=5
+            )
+            genres = [g["name"] for g in r.json().get("genres", [])]
+        return ",".join(genres)
+    except:
+        return ""
 
 @app.route("/search")
 def search():
@@ -104,13 +121,14 @@ def search():
             for m in results[:20]
         ]
     return jsonify(media)
-    
+
 @app.route("/add", methods=["POST"])
 def add_movie():
     data = request.get_json()
+    genres = fetch_genres(data["tmdb_id"], data["media_type"])
+
     conn = get_db()
     if USE_POSTGRES:
-        from psycopg2.extras import RealDictCursor
         c = conn.cursor(cursor_factory=RealDictCursor)
     else:
         conn.row_factory = sqlite3.Row
@@ -118,14 +136,14 @@ def add_movie():
     try:
         if USE_POSTGRES:
             c.execute('''
-                INSERT INTO movies (tmdb_id, title, poster_path, status, media_type)
-                VALUES (%s, %s, %s, 'plan_to_watch', %s)
-            ''', (data["tmdb_id"], data["title"], data["poster"], data["media_type"]))
+                INSERT INTO movies (tmdb_id, title, poster_path, status, media_type, genres)
+                VALUES (%s, %s, %s, 'plan_to_watch', %s, %s)
+            ''', (data["tmdb_id"], data["title"], data["poster"], data["media_type"], genres))
         else:
             c.execute('''
-                INSERT INTO movies (tmdb_id, title, poster_path, status, media_type)
-                VALUES (?, ?, ?, 'plan_to_watch', ?)
-            ''', (data["tmdb_id"], data["title"], data["poster"], data["media_type"]))
+                INSERT INTO movies (tmdb_id, title, poster_path, status, media_type, genres)
+                VALUES (?, ?, ?, 'plan_to_watch', ?, ?)
+            ''', (data["tmdb_id"], data["title"], data["poster"], data["media_type"], genres))
         conn.commit()
         result = {"success": True, "message": f"{data['title']} added!"}
     except Exception as e:
@@ -138,7 +156,6 @@ def add_movie():
 def watchlist():
     conn = get_db()
     if USE_POSTGRES:
-        from psycopg2.extras import RealDictCursor
         c = conn.cursor(cursor_factory=RealDictCursor)
     else:
         conn.row_factory = sqlite3.Row
@@ -146,9 +163,6 @@ def watchlist():
     c.execute("SELECT * FROM movies")
     rows = c.fetchall()
     conn.close()
-    print(f"DEBUG: Found {len(rows)} rows")
-    if rows:
-        print(f"DEBUG: First row: {rows[0]}")
     movies = [
         {
             "id": r["id"],
@@ -173,20 +187,15 @@ def update_movie():
     data = request.get_json()
     conn = get_db()
     if USE_POSTGRES:
-        from psycopg2.extras import RealDictCursor
         c = conn.cursor(cursor_factory=RealDictCursor)
         c.execute('''
-            UPDATE movies
-            SET status = %s, rating = %s, review = %s
-            WHERE id = %s
+            UPDATE movies SET status = %s, rating = %s, review = %s WHERE id = %s
         ''', (data["status"], data["rating"], data["review"], data["id"]))
     else:
         conn.row_factory = sqlite3.Row
         c = conn.cursor()
         c.execute('''
-            UPDATE movies
-            SET status = ?, rating = ?, review = ?
-            WHERE id = ?
+            UPDATE movies SET status = ?, rating = ?, review = ? WHERE id = ?
         ''', (data["status"], data["rating"], data["review"], data["id"]))
     conn.commit()
     conn.close()
@@ -197,7 +206,6 @@ def delete_movie():
     data = request.get_json()
     conn = get_db()
     if USE_POSTGRES:
-        from psycopg2.extras import RealDictCursor
         c = conn.cursor(cursor_factory=RealDictCursor)
         c.execute("DELETE FROM movies WHERE id = %s", (data["id"],))
     else:
@@ -252,6 +260,7 @@ def api_details(media_type, tmdb_id):
             "year": (data.get("release_date") or data.get("first_air_date") or "")[:4],
             "media_type": media_type
         })
+
 @app.route("/stats")
 def stats():
     return render_template("stats.html")
@@ -260,60 +269,33 @@ def stats():
 def api_stats():
     conn = get_db()
     if USE_POSTGRES:
-        from psycopg2.extras import RealDictCursor
         c = conn.cursor(cursor_factory=RealDictCursor)
     else:
         conn.row_factory = sqlite3.Row
         c = conn.cursor()
-    c.execute("SELECT * FROM movies")
+    c.execute("SELECT media_type, rating, status, genres FROM movies")
     rows = c.fetchall()
     conn.close()
 
-    movies = [
-    {
-        "tmdb_id": r["tmdb_id"],
-        "media_type": r["media_type"],
-        "rating": r["rating"],
-        "status": r["status"]
-    }
-    for r in rows
-    ]
-
-    total = len(movies)
+    total = len(rows)
     status_counts = {}
-    for m in movies:
-        status_counts[m["status"]] = status_counts.get(m["status"], 0) + 1
-
     type_counts = {"movie": 0, "tv": 0, "anime": 0}
-    for m in movies:
-        if m["media_type"] in type_counts:
-            type_counts[m["media_type"]] += 1
-
-    ratings = [m["rating"] for m in movies if m["rating"]]
-    avg_rating = round(sum(ratings) / len(ratings), 1) if ratings else None
-
-    # fetch genres for rated items
+    ratings = []
     genre_counts = {}
-    for m in movies:
-        if m["media_type"] == "anime":
-            try:
-                r = requests.get(f"https://api.jikan.moe/v4/anime/{m['tmdb_id']}")
-                genres = [g["name"] for g in r.json().get("data", {}).get("genres", [])]
-            except:
-                genres = []
-        else:
-            endpoint = "movie" if m["media_type"] == "movie" else "tv"
-            try:
-                r = requests.get(
-                    f"https://api.themoviedb.org/3/{endpoint}/{m['tmdb_id']}",
-                    params={"api_key": API_KEY}
-                )
-                genres = [g["name"] for g in r.json().get("genres", [])]
-            except:
-                genres = []
-        for g in genres:
-            genre_counts[g] = genre_counts.get(g, 0) + 1
 
+    for r in rows:
+        status_counts[r["status"]] = status_counts.get(r["status"], 0) + 1
+        if r["media_type"] in type_counts:
+            type_counts[r["media_type"]] += 1
+        if r["rating"]:
+            ratings.append(r["rating"])
+        if r["genres"]:
+            for g in r["genres"].split(","):
+                g = g.strip()
+                if g:
+                    genre_counts[g] = genre_counts.get(g, 0) + 1
+
+    avg_rating = round(sum(ratings) / len(ratings), 1) if ratings else None
     top_genres = sorted(genre_counts.items(), key=lambda x: x[1], reverse=True)[:6]
 
     return jsonify({
@@ -323,6 +305,7 @@ def api_stats():
         "avg_rating": avg_rating,
         "top_genres": top_genres
     })
+
 @app.route("/")
 def home():
     return render_template("home.html", api_key=API_KEY)
@@ -330,6 +313,7 @@ def home():
 @app.route("/discover")
 def search_page():
     return render_template("index.html")
+
 @app.route("/api/trending/<media_type>")
 def trending(media_type):
     if media_type == "anime":
@@ -368,22 +352,20 @@ def trending(media_type):
             for m in results[:20]
         ]
     return jsonify(media)
+
 @app.route("/api/recommendations")
 def recommendations():
     conn = get_db()
     if USE_POSTGRES:
-        from psycopg2.extras import RealDictCursor
         c = conn.cursor(cursor_factory=RealDictCursor)
     else:
         conn.row_factory = sqlite3.Row
         c = conn.cursor()
 
-    # Get ALL items already in watchlist to exclude them
     c.execute("SELECT tmdb_id FROM movies")
     all_rows = c.fetchall()
     watched_ids = set(str(r["tmdb_id"]) for r in all_rows)
 
-    # Get all rated items (not just top 10) — weight higher-rated ones more heavily
     c.execute("SELECT tmdb_id, media_type, rating FROM movies WHERE rating IS NOT NULL ORDER BY rating DESC")
     rows = c.fetchall()
     conn.close()
@@ -391,15 +373,12 @@ def recommendations():
     if not rows:
         return jsonify([])
 
-    # Build a weighted seed list: a title rated 9 appears 9 times, rated 5 appears 5 times, etc.
-    # Then shuffle so every call picks different seeds first
     weighted_seeds = []
     for r in rows:
         weight = r["rating"] if r["rating"] else 1
         weighted_seeds.extend([r] * weight)
     random.shuffle(weighted_seeds)
 
-    # Deduplicate seeds while preserving shuffle order
     seen_seeds = set()
     seeds = []
     for r in weighted_seeds:
@@ -415,34 +394,28 @@ def recommendations():
         media_type = r["media_type"]
 
         if media_type == "anime":
-            # Fetch both recommendations and similar (top anime by same genres)
-            endpoints_to_try = [
-                f"https://api.jikan.moe/v4/anime/{tmdb_id}/recommendations",
-            ]
-            for url in endpoints_to_try:
-                try:
-                    resp = requests.get(url, timeout=5)
-                    items = resp.json().get("data", [])
-                    random.shuffle(items)
-                    for item in items[:8]:
-                        entry = item.get("entry", {})
-                        mid = str(entry.get("mal_id"))
-                        if mid in watched_ids or mid in seen_ids:
-                            continue
-                        seen_ids.add(mid)
-                        results.append({
-                            "tmdb_id": entry.get("mal_id"),
-                            "title": entry.get("title"),
-                            "poster": entry.get("images", {}).get("jpg", {}).get("image_url"),
-                            "media_type": "anime",
-                            "year": "",
-                            "rating": None
-                        })
-                except:
-                    pass
+            try:
+                resp = requests.get(f"https://api.jikan.moe/v4/anime/{tmdb_id}/recommendations", timeout=5)
+                items = resp.json().get("data", [])
+                random.shuffle(items)
+                for item in items[:8]:
+                    entry = item.get("entry", {})
+                    mid = str(entry.get("mal_id"))
+                    if mid in watched_ids or mid in seen_ids:
+                        continue
+                    seen_ids.add(mid)
+                    results.append({
+                        "tmdb_id": entry.get("mal_id"),
+                        "title": entry.get("title"),
+                        "poster": entry.get("images", {}).get("jpg", {}).get("image_url"),
+                        "media_type": "anime",
+                        "year": "",
+                        "rating": None
+                    })
+            except:
+                pass
         else:
             endpoint = "movie" if media_type == "movie" else "tv"
-            # Hit both /recommendations and /similar for more variety
             for api_path in ["recommendations", "similar"]:
                 try:
                     resp = requests.get(
@@ -468,17 +441,15 @@ def recommendations():
                 except:
                     pass
 
-        # Stop seeding once we have plenty of candidates
         if len(results) >= 80:
             break
 
-    # Shuffle final results so it's not always the same order
     random.shuffle(results)
     return jsonify(results[:40])
 
-    
 with app.app_context():
     init_db()
+
 if __name__ == "__main__":
     init_db()
     app.run(debug=True)
