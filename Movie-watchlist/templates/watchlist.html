@@ -613,6 +613,7 @@
             movies.forEach((movie, i) => {
                 const card = document.createElement("div");
                 card.className = "movie-card";
+                card.dataset.id = movie.id;
                 card.style.animationDelay = `${i * 0.04}s`;
                 card.onclick = () => openModal(movie);
                 card.innerHTML = `
@@ -694,26 +695,79 @@
             document.body.style.overflow = '';
             const status = document.getElementById("modal-status").value;
             const review = document.getElementById("modal-review").value;
-            const response = await fetch("/update", {
+            const rating = currentRating || null;
+
+            await fetch("/update", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ id: currentMovie.id, status, rating: currentRating || null, review })
+                body: JSON.stringify({ id: currentMovie.id, status, rating, review })
             });
-            const result = await response.json();
+
             document.getElementById("modal-overlay").style.display = "none";
-            loadWatchlist();
+
+            // Update in-memory data
+            const movie = allMovies.find(m => m.id === currentMovie.id);
+            if (movie) {
+                movie.status = status;
+                movie.rating = rating;
+                movie.review = review;
+            }
+
+            // If a status filter is active and this card no longer matches, remove it from view
+            // Or if sort is by rating, re-render to reorder — but preserve scroll
+            const sort = document.getElementById("sort-select").value;
+            const cardEl = document.querySelector(`.movie-card[data-id="${currentMovie.id}"]`);
+
+            if (activeStatus !== "all" && status !== activeStatus) {
+                // Card no longer matches filter — remove it smoothly
+                if (cardEl) {
+                    cardEl.style.transition = "opacity 0.2s, transform 0.2s";
+                    cardEl.style.opacity = "0";
+                    cardEl.style.transform = "scale(0.95)";
+                    setTimeout(() => cardEl.remove(), 200);
+                }
+            } else if (sort === "rating") {
+                // Re-render to reorder, but restore scroll position
+                const scrollY = window.scrollY;
+                applyFilters();
+                requestAnimationFrame(() => window.scrollTo({ top: scrollY }));
+            } else {
+                // Just update the card in-place
+                if (cardEl) {
+                    const strip = cardEl.querySelector(".status-strip");
+                    if (strip) strip.className = `status-strip status-${status}`;
+                    const ratingEl = cardEl.querySelectorAll(".card-info p")[1];
+                    if (ratingEl) ratingEl.innerHTML = rating
+                        ? `⭐ ${rating}/10`
+                        : `<span style="color:var(--muted)">No rating</span>`;
+                    cardEl.onclick = () => openModal(movie);
+                }
+            }
         }
 
         async function deleteMovie() {
             document.body.style.overflow = '';
             if (!confirm("Remove this from your watchlist?")) return;
+
             await fetch("/delete", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ id: currentMovie.id })
             });
+
             document.getElementById("modal-overlay").style.display = "none";
-            loadWatchlist();
+
+            // Remove from in-memory array
+            allMovies = allMovies.filter(m => m.id !== currentMovie.id);
+
+            // Remove card from DOM smoothly
+            const cardEl = document.querySelector(`.movie-card[data-id="${currentMovie.id}"]`);
+            if (cardEl) {
+                cardEl.style.transition = "opacity 0.2s, transform 0.2s";
+                cardEl.style.opacity = "0";
+                cardEl.style.transform = "scale(0.95)";
+                setTimeout(() => cardEl.remove(), 200);
+            }
         }
 
         loadWatchlist();
