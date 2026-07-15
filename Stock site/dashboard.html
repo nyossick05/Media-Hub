@@ -1,0 +1,607 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Stockfolio</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <style>
+    :root {
+      --bg: #0a0c0f;
+      --surface: #111318;
+      --surface2: #181c23;
+      --border: #1e2330;
+      --text: #e8eaf0;
+      --muted: #5a6278;
+      --accent: #00d4aa;
+      --accent2: #3d7aff;
+      --red: #ff4757;
+      --green: #00d4aa;
+      --yellow: #ffd32a;
+      --mono: 'IBM Plex Mono', monospace;
+      --sans: 'IBM Plex Sans', sans-serif;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { background: var(--bg); color: var(--text); font-family: var(--sans); min-height: 100vh; }
+
+    /* NAV */
+    nav {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 16px 32px; border-bottom: 1px solid var(--border);
+      background: var(--surface);
+    }
+    .logo { font-family: var(--mono); font-size: 18px; font-weight: 600; color: var(--accent); letter-spacing: -0.5px; }
+    .logo span { color: var(--muted); }
+    .nav-actions { display: flex; gap: 12px; }
+
+    /* BUTTONS */
+    .btn {
+      font-family: var(--mono); font-size: 12px; font-weight: 500;
+      padding: 8px 16px; border-radius: 4px; cursor: pointer;
+      border: 1px solid var(--border); background: var(--surface2);
+      color: var(--text); transition: all 0.15s ease;
+    }
+    .btn:hover { border-color: var(--accent); color: var(--accent); }
+    .btn-primary { background: var(--accent); color: #000; border-color: var(--accent); }
+    .btn-primary:hover { background: #00bfa0; color: #000; border-color: #00bfa0; }
+    .btn-danger { border-color: var(--red); color: var(--red); }
+    .btn-danger:hover { background: var(--red); color: #fff; }
+    .btn-sm { padding: 4px 10px; font-size: 11px; }
+
+    /* LAYOUT */
+    .main { padding: 32px; max-width: 1400px; margin: 0 auto; }
+
+    /* STAT CARDS */
+    .stats-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 32px; }
+    .stat-card {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 8px; padding: 20px 24px;
+    }
+    .stat-label { font-family: var(--mono); font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 8px; }
+    .stat-value { font-family: var(--mono); font-size: 26px; font-weight: 600; color: var(--text); }
+    .stat-value.positive { color: var(--green); }
+    .stat-value.negative { color: var(--red); }
+    .stat-sub { font-family: var(--mono); font-size: 12px; color: var(--muted); margin-top: 4px; }
+
+    /* GRID */
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-bottom: 24px; }
+    .grid-3 { display: grid; grid-template-columns: 2fr 1fr; gap: 24px; margin-bottom: 24px; }
+
+    /* PANELS */
+    .panel {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 8px; overflow: hidden;
+    }
+    .panel-header {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 16px 20px; border-bottom: 1px solid var(--border);
+    }
+    .panel-title { font-family: var(--mono); font-size: 13px; font-weight: 500; color: var(--text); }
+    .panel-body { padding: 20px; }
+
+    /* TABLE */
+    table { width: 100%; border-collapse: collapse; }
+    th {
+      font-family: var(--mono); font-size: 10px; font-weight: 500;
+      color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em;
+      padding: 10px 16px; text-align: right; border-bottom: 1px solid var(--border);
+    }
+    th:first-child { text-align: left; }
+    td {
+      font-family: var(--mono); font-size: 13px;
+      padding: 12px 16px; text-align: right;
+      border-bottom: 1px solid var(--border); color: var(--text);
+    }
+    td:first-child { text-align: left; }
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: var(--surface2); }
+    .ticker-badge {
+      display: inline-block; background: var(--surface2); border: 1px solid var(--border);
+      border-radius: 4px; padding: 2px 8px; font-size: 12px; font-weight: 500; color: var(--accent2);
+    }
+    .positive { color: var(--green); }
+    .negative { color: var(--red); }
+    .neutral { color: var(--muted); }
+
+    /* ALLOCATION BARS */
+    .alloc-row { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
+    .alloc-ticker { font-family: var(--mono); font-size: 12px; font-weight: 500; width: 60px; color: var(--accent2); }
+    .alloc-bar-wrap { flex: 1; background: var(--surface2); border-radius: 2px; height: 6px; overflow: hidden; }
+    .alloc-bar { height: 100%; background: var(--accent); border-radius: 2px; transition: width 0.5s ease; }
+    .alloc-pct { font-family: var(--mono); font-size: 11px; color: var(--muted); width: 40px; text-align: right; }
+
+    /* BENCHMARK COMPARISON */
+    .comparison-nums { display: flex; gap: 32px; margin-bottom: 20px; }
+    .comp-item { }
+    .comp-label { font-family: var(--mono); font-size: 11px; color: var(--muted); margin-bottom: 4px; }
+    .comp-value { font-family: var(--mono); font-size: 22px; font-weight: 600; }
+
+    /* MODAL */
+    .modal-overlay {
+      display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.7);
+      z-index: 100; align-items: center; justify-content: center;
+    }
+    .modal-overlay.open { display: flex; }
+    .modal {
+      background: var(--surface); border: 1px solid var(--border); border-radius: 10px;
+      padding: 28px; width: 420px; max-width: 95vw;
+    }
+    .modal-title { font-family: var(--mono); font-size: 15px; font-weight: 600; margin-bottom: 20px; }
+    .form-group { margin-bottom: 14px; }
+    .form-label { font-family: var(--mono); font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; display: block; margin-bottom: 6px; }
+    .form-input {
+      width: 100%; background: var(--surface2); border: 1px solid var(--border);
+      border-radius: 4px; padding: 10px 12px; font-family: var(--mono); font-size: 13px;
+      color: var(--text); outline: none;
+    }
+    .form-input:focus { border-color: var(--accent); }
+    .form-row { display: flex; gap: 12px; }
+    .form-row .form-group { flex: 1; }
+    .modal-actions { display: flex; gap: 10px; margin-top: 20px; justify-content: flex-end; }
+
+    /* IMPORT ZONE */
+    .import-zone {
+      border: 2px dashed var(--border); border-radius: 8px;
+      padding: 32px; text-align: center; cursor: pointer;
+      transition: border-color 0.2s ease;
+    }
+    .import-zone:hover, .import-zone.drag-over { border-color: var(--accent); }
+    .import-zone-icon { font-size: 28px; margin-bottom: 10px; }
+    .import-zone-text { font-family: var(--mono); font-size: 13px; color: var(--muted); }
+    .import-zone-text strong { color: var(--accent); }
+    #csv-file-input { display: none; }
+
+    /* TOAST */
+    .toast {
+      position: fixed; bottom: 24px; right: 24px; z-index: 200;
+      background: var(--surface2); border: 1px solid var(--border); border-radius: 6px;
+      padding: 12px 20px; font-family: var(--mono); font-size: 13px;
+      transform: translateY(80px); opacity: 0; transition: all 0.3s ease;
+    }
+    .toast.show { transform: translateY(0); opacity: 1; }
+    .toast.success { border-color: var(--green); color: var(--green); }
+    .toast.error { border-color: var(--red); color: var(--red); }
+
+    /* EMPTY STATE */
+    .empty-state { text-align: center; padding: 40px 20px; color: var(--muted); font-family: var(--mono); font-size: 13px; }
+
+    canvas { max-height: 220px; }
+
+    @media (max-width: 900px) {
+      .stats-row { grid-template-columns: 1fr 1fr; }
+      .grid-2, .grid-3 { grid-template-columns: 1fr; }
+      .main { padding: 16px; }
+    }
+  </style>
+</head>
+<body>
+
+<nav>
+  <div class="logo">stock<span>//</span>folio</div>
+  <div class="nav-actions">
+    <button class="btn" onclick="openImportModal()">↑ Import CSV</button>
+    <button class="btn btn-primary" onclick="openAddHoldingModal()">+ Add Holding</button>
+  </div>
+</nav>
+
+<div class="main">
+
+  <!-- STAT CARDS -->
+  <div class="stats-row">
+    <div class="stat-card">
+      <div class="stat-label">Portfolio Value</div>
+      <div class="stat-value" id="total-value">
+        {% if totals.total_value %}${{ "{:,.2f}".format(totals.total_value) }}{% else %}—{% endif %}
+      </div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Total Cost Basis</div>
+      <div class="stat-value">
+        {% if totals.total_cost %}${{ "{:,.2f}".format(totals.total_cost) }}{% else %}—{% endif %}
+      </div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Unrealized P&L</div>
+      <div class="stat-value {% if totals.total_gain_loss and totals.total_gain_loss >= 0 %}positive{% elif totals.total_gain_loss %}negative{% endif %}">
+        {% if totals.total_gain_loss is not none %}
+          {{ "+" if totals.total_gain_loss >= 0 else "" }}${{ "{:,.2f}".format(totals.total_gain_loss) }}
+        {% else %}—{% endif %}
+      </div>
+      <div class="stat-sub">
+        {% if totals.total_gain_loss_pct is not none %}
+          {{ "+" if totals.total_gain_loss_pct >= 0 else "" }}{{ totals.total_gain_loss_pct }}%
+        {% endif %}
+      </div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">vs {{ portfolio.benchmark }}</div>
+      {% if comparison.portfolio_pct_change is not none and comparison.benchmark_pct_change is not none %}
+        {% set alpha = comparison.portfolio_pct_change - comparison.benchmark_pct_change %}
+        <div class="stat-value {% if alpha >= 0 %}positive{% else %}negative{% endif %}">
+          {{ "+" if alpha >= 0 else "" }}{{ "%.2f"|format(alpha) }}%
+        </div>
+        <div class="stat-sub">alpha (1yr)</div>
+      {% else %}
+        <div class="stat-value neutral">—</div>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- HOLDINGS + ALLOCATION -->
+  <div class="grid-3">
+    <div class="panel">
+      <div class="panel-header">
+        <span class="panel-title">Holdings</span>
+        <span style="font-family:var(--mono);font-size:11px;color:var(--muted)">{{ holdings|length }} positions</span>
+      </div>
+      {% if holdings %}
+      <table>
+        <thead>
+          <tr>
+            <th>Ticker</th>
+            <th>Shares</th>
+            <th>Cost Basis</th>
+            <th>Current</th>
+            <th>Value</th>
+            <th>P&L</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for h in holdings %}
+          <tr>
+            <td><span class="ticker-badge">{{ h.ticker }}</span></td>
+            <td>{{ "%.4f"|format(h.shares) }}</td>
+            <td>{% if h.cost_basis_per_share %}${{ "%.2f"|format(h.cost_basis_per_share) }}{% else %}<span class="neutral">—</span>{% endif %}</td>
+            <td>{% if h.current_price %}${{ "%.2f"|format(h.current_price) }}{% else %}<span class="neutral">—</span>{% endif %}</td>
+            <td>{% if h.current_value %}${{ "{:,.2f}".format(h.current_value) }}{% else %}<span class="neutral">—</span>{% endif %}</td>
+            <td class="{% if h.gain_loss_pct and h.gain_loss_pct >= 0 %}positive{% elif h.gain_loss_pct %}negative{% endif %}">
+              {% if h.gain_loss_pct is not none %}
+                {{ "+" if h.gain_loss_pct >= 0 else "" }}{{ "%.2f"|format(h.gain_loss_pct) }}%
+              {% else %}<span class="neutral">—</span>{% endif %}
+            </td>
+            <td><button class="btn btn-sm btn-danger" onclick="deleteHolding('{{ h.id }}')">✕</button></td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      {% else %}
+      <div class="empty-state">No holdings yet.<br>Import a Fidelity CSV or add manually.</div>
+      {% endif %}
+    </div>
+
+    <div class="panel">
+      <div class="panel-header"><span class="panel-title">Allocation</span></div>
+      <div class="panel-body">
+        {% if allocation %}
+          {% for a in allocation[:10] %}
+          <div class="alloc-row">
+            <div class="alloc-ticker">{{ a.ticker }}</div>
+            <div class="alloc-bar-wrap"><div class="alloc-bar" style="width:{{ a.pct }}%"></div></div>
+            <div class="alloc-pct">{{ a.pct }}%</div>
+          </div>
+          {% endfor %}
+        {% else %}
+          <div style="color:var(--muted);font-family:var(--mono);font-size:13px;text-align:center;padding:20px 0">No data</div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <!-- BENCHMARK CHART + DIVIDENDS -->
+  <div class="grid-2">
+    <div class="panel">
+      <div class="panel-header"><span class="panel-title">vs {{ portfolio.benchmark }} (1yr)</span></div>
+      <div class="panel-body">
+        {% if comparison.portfolio_pct_change is not none %}
+        <div class="comparison-nums">
+          <div class="comp-item">
+            <div class="comp-label">Your Portfolio</div>
+            <div class="comp-value {% if comparison.portfolio_pct_change >= 0 %}positive{% else %}negative{% endif %}">
+              {{ "+" if comparison.portfolio_pct_change >= 0 else "" }}{{ "%.2f"|format(comparison.portfolio_pct_change) }}%
+            </div>
+          </div>
+          <div class="comp-item">
+            <div class="comp-label">{{ portfolio.benchmark }}</div>
+            <div class="comp-value {% if comparison.benchmark_pct_change >= 0 %}positive{% else %}negative{% endif %}">
+              {{ "+" if comparison.benchmark_pct_change >= 0 else "" }}{{ "%.2f"|format(comparison.benchmark_pct_change) }}%
+            </div>
+          </div>
+        </div>
+        {% endif %}
+        <canvas id="benchmarkChart"></canvas>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-header">
+        <span class="panel-title">Dividends</span>
+        <button class="btn btn-sm" onclick="openAddDividendModal()">+ Add</button>
+      </div>
+      {% if dividends %}
+      <table>
+        <thead>
+          <tr>
+            <th>Ticker</th>
+            <th>Ex-Date</th>
+            <th>Per Share</th>
+            <th>Total</th>
+            <th>Status</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for d in dividends %}
+          <tr>
+            <td><span class="ticker-badge">{{ d.ticker }}</span></td>
+            <td class="neutral">{{ d.ex_date }}</td>
+            <td>${{ "%.4f"|format(d.amount_per_share) }}</td>
+            <td>${{ "%.2f"|format(d.amount_per_share * d.shares_held) }}</td>
+            <td>
+              {% if d.paid %}
+                <span class="positive" style="font-size:11px">PAID</span>
+              {% else %}
+                <button class="btn btn-sm" onclick="markDividendPaid('{{ d.id }}')">Mark Paid</button>
+              {% endif %}
+            </td>
+            <td><button class="btn btn-sm btn-danger" onclick="deleteDividend('{{ d.id }}')">✕</button></td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      {% else %}
+      <div class="empty-state">No dividends logged yet.</div>
+      {% endif %}
+    </div>
+  </div>
+
+</div>
+
+<!-- IMPORT MODAL -->
+<div class="modal-overlay" id="import-modal">
+  <div class="modal">
+    <div class="modal-title">Import Fidelity Positions</div>
+    <p style="font-family:var(--mono);font-size:12px;color:var(--muted);margin-bottom:16px;line-height:1.6">
+      Go to Fidelity → Accounts & Trade → Account Positions → Download.<br>
+      Select the downloaded CSV file below.
+    </p>
+    <div class="import-zone" id="drop-zone" onclick="document.getElementById('csv-file-input').click()">
+      <div class="import-zone-icon">📄</div>
+      <div class="import-zone-text"><strong>Click to select</strong> or drag & drop your CSV</div>
+      <div id="selected-filename" style="margin-top:8px;font-size:12px;color:var(--accent)"></div>
+    </div>
+    <input type="file" id="csv-file-input" accept=".csv">
+    <div class="modal-actions">
+      <button class="btn" onclick="closeModal('import-modal')">Cancel</button>
+      <button class="btn btn-primary" id="import-btn" onclick="doImport()">Import</button>
+    </div>
+  </div>
+</div>
+
+<!-- ADD HOLDING MODAL -->
+<div class="modal-overlay" id="holding-modal">
+  <div class="modal">
+    <div class="modal-title">Add Holding</div>
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">Ticker</label>
+        <input class="form-input" id="h-ticker" placeholder="AAPL" style="text-transform:uppercase">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Shares</label>
+        <input class="form-input" id="h-shares" type="number" placeholder="10">
+      </div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Cost Basis / Share (optional)</label>
+      <input class="form-input" id="h-basis" type="number" placeholder="150.00">
+    </div>
+    <div class="modal-actions">
+      <button class="btn" onclick="closeModal('holding-modal')">Cancel</button>
+      <button class="btn btn-primary" onclick="addHolding()">Add</button>
+    </div>
+  </div>
+</div>
+
+<!-- ADD DIVIDEND MODAL -->
+<div class="modal-overlay" id="dividend-modal">
+  <div class="modal">
+    <div class="modal-title">Log Dividend</div>
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">Ticker</label>
+        <input class="form-input" id="d-ticker" placeholder="AAPL" style="text-transform:uppercase">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Amount / Share</label>
+        <input class="form-input" id="d-amount" type="number" placeholder="0.24">
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">Shares Held</label>
+        <input class="form-input" id="d-shares" type="number" placeholder="10">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Ex-Date</label>
+        <input class="form-input" id="d-exdate" type="date">
+      </div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Pay Date (optional)</label>
+      <input class="form-input" id="d-paydate" type="date">
+    </div>
+    <div class="modal-actions">
+      <button class="btn" onclick="closeModal('dividend-modal')">Cancel</button>
+      <button class="btn btn-primary" onclick="addDividend()">Add</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+  // --- Chart ---
+  const benchmarkData = {{ comparison.benchmark_series | tojson | safe }};
+  if (benchmarkData && benchmarkData.length > 0) {
+    const ctx = document.getElementById('benchmarkChart').getContext('2d');
+    new Chart(ctx, {
+      type: 'line',
+      data: {
+        labels: benchmarkData.map(d => d.date),
+        datasets: [{
+          label: '{{ portfolio.benchmark }}',
+          data: benchmarkData.map(d => d.value),
+          borderColor: '#3d7aff',
+          backgroundColor: 'rgba(61,122,255,0.08)',
+          borderWidth: 2,
+          pointRadius: 0,
+          tension: 0.3,
+          fill: true,
+        }]
+      },
+      options: {
+        responsive: true,
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            callbacks: {
+              label: ctx => `${ctx.parsed.y >= 0 ? '+' : ''}${ctx.parsed.y.toFixed(2)}%`
+            }
+          }
+        },
+        scales: {
+          x: {
+            ticks: { color: '#5a6278', font: { family: 'IBM Plex Mono', size: 10 }, maxTicksLimit: 6 },
+            grid: { color: '#1e2330' }
+          },
+          y: {
+            ticks: { color: '#5a6278', font: { family: 'IBM Plex Mono', size: 10 }, callback: v => `${v >= 0 ? '+' : ''}${v.toFixed(1)}%` },
+            grid: { color: '#1e2330' }
+          }
+        }
+      }
+    });
+  }
+
+  // --- Toast ---
+  function showToast(msg, type = 'success') {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.className = `toast ${type} show`;
+    setTimeout(() => t.className = 'toast', 3000);
+  }
+
+  // --- Modals ---
+  function openImportModal() { document.getElementById('import-modal').classList.add('open'); }
+  function openAddHoldingModal() { document.getElementById('holding-modal').classList.add('open'); }
+  function openAddDividendModal() { document.getElementById('dividend-modal').classList.add('open'); }
+  function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+
+  // Close on overlay click
+  document.querySelectorAll('.modal-overlay').forEach(el => {
+    el.addEventListener('click', e => { if (e.target === el) el.classList.remove('open'); });
+  });
+
+  // --- CSV Import ---
+  const fileInput = document.getElementById('csv-file-input');
+  const dropZone = document.getElementById('drop-zone');
+
+  fileInput.addEventListener('change', () => {
+    if (fileInput.files[0]) {
+      document.getElementById('selected-filename').textContent = fileInput.files[0].name;
+    }
+  });
+
+  dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('drag-over'); });
+  dropZone.addEventListener('dragleave', () => dropZone.classList.remove('drag-over'));
+  dropZone.addEventListener('drop', e => {
+    e.preventDefault(); dropZone.classList.remove('drag-over');
+    const file = e.dataTransfer.files[0];
+    if (file) {
+      fileInput.files = e.dataTransfer.files;
+      document.getElementById('selected-filename').textContent = file.name;
+    }
+  });
+
+  async function doImport() {
+    const file = fileInput.files[0];
+    if (!file) { showToast('Select a CSV file first', 'error'); return; }
+    const fd = new FormData();
+    fd.append('file', file);
+    const btn = document.getElementById('import-btn');
+    btn.disabled = true; btn.textContent = 'Importing...';
+    try {
+      const res = await fetch('/holdings/import', { method: 'POST', body: fd });
+      const data = await res.json();
+      if (res.ok) {
+        showToast(`Imported ${data.imported} positions`);
+        setTimeout(() => location.reload(), 1200);
+      } else {
+        showToast(data.error || 'Import failed', 'error');
+      }
+    } catch(e) { showToast('Network error', 'error'); }
+    btn.disabled = false; btn.textContent = 'Import';
+  }
+
+  // --- Add Holding ---
+  async function addHolding() {
+    const ticker = document.getElementById('h-ticker').value.trim().toUpperCase();
+    const shares = document.getElementById('h-shares').value;
+    const basis = document.getElementById('h-basis').value;
+    if (!ticker || !shares) { showToast('Ticker and shares required', 'error'); return; }
+    const res = await fetch('/holdings/', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ticker, shares, cost_basis_per_share: basis || null })
+    });
+    if (res.ok) { showToast(`Added ${ticker}`); closeModal('holding-modal'); setTimeout(() => location.reload(), 1000); }
+    else { const d = await res.json(); showToast(d.error || 'Failed', 'error'); }
+  }
+
+  // --- Delete Holding ---
+  async function deleteHolding(id) {
+    if (!confirm('Remove this holding?')) return;
+    const res = await fetch(`/holdings/${id}`, { method: 'DELETE' });
+    if (res.ok) { showToast('Removed'); setTimeout(() => location.reload(), 800); }
+  }
+
+  // --- Add Dividend ---
+  async function addDividend() {
+    const body = {
+      ticker: document.getElementById('d-ticker').value.trim().toUpperCase(),
+      amount_per_share: document.getElementById('d-amount').value,
+      shares_held: document.getElementById('d-shares').value,
+      ex_date: document.getElementById('d-exdate').value,
+      pay_date: document.getElementById('d-paydate').value || null,
+    };
+    if (!body.ticker || !body.amount_per_share || !body.shares_held || !body.ex_date) {
+      showToast('Fill in all required fields', 'error'); return;
+    }
+    const res = await fetch('/dividends/', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body)
+    });
+    if (res.ok) { showToast(`Logged ${body.ticker} dividend`); closeModal('dividend-modal'); setTimeout(() => location.reload(), 1000); }
+    else { showToast('Failed to add', 'error'); }
+  }
+
+  // --- Mark Dividend Paid ---
+  async function markDividendPaid(id) {
+    const res = await fetch(`/dividends/${id}/mark-paid`, { method: 'PATCH' });
+    if (res.ok) { showToast('Marked as paid'); setTimeout(() => location.reload(), 800); }
+  }
+
+  // --- Delete Dividend ---
+  async function deleteDividend(id) {
+    if (!confirm('Delete this dividend?')) return;
+    const res = await fetch(`/dividends/${id}`, { method: 'DELETE' });
+    if (res.ok) { showToast('Deleted'); setTimeout(() => location.reload(), 800); }
+  }
+</script>
+</body>
+</html>
