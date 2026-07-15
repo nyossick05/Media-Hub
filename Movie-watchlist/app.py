@@ -17,6 +17,15 @@ API_KEY = os.getenv("TMDB_API_KEY")
 DATABASE_URL = os.getenv("DATABASE_URL")
 USE_POSTGRES = DATABASE_URL is not None
 
+ANILIST_URL = "https://graphql.anilist.co"
+
+def anilist_query(query, variables=None):
+    try:
+        resp = requests.post(ANILIST_URL, json={"query": query, "variables": variables or {}}, timeout=10)
+        return resp.json().get("data", {})
+    except:
+        return {}
+
 def get_db():
     if USE_POSTGRES:
         conn = psycopg2.connect(DATABASE_URL, sslmode="require")
@@ -41,10 +50,7 @@ def init_db():
                 genres TEXT
             )
         ''')
-        # Add genres column if it doesn't exist yet (for existing DBs)
-        c.execute('''
-            ALTER TABLE movies ADD COLUMN IF NOT EXISTS genres TEXT
-        ''')
+        c.execute('ALTER TABLE movies ADD COLUMN IF NOT EXISTS genres TEXT')
     else:
         conn.row_factory = sqlite3.Row
         c = conn.cursor()
@@ -65,11 +71,17 @@ def init_db():
     conn.close()
 
 def fetch_genres(tmdb_id, media_type):
-    """Fetch genres from TMDB/Jikan at add-time and return as comma-separated string."""
     try:
         if media_type == "anime":
-            r = requests.get(f"https://api.jikan.moe/v4/anime/{tmdb_id}", timeout=5)
-            genres = [g["name"] for g in r.json().get("data", {}).get("genres", [])]
+            query = """
+            query ($id: Int) {
+                Media(id: $id, type: ANIME) {
+                    genres
+                }
+            }
+            """
+            data = anilist_query(query, {"id": tmdb_id})
+            return ",".join(data.get("Media", {}).get("genres", []))
         else:
             endpoint = "movie" if media_type == "movie" else "tv"
             r = requests.get(
@@ -78,7 +90,7 @@ def fetch_genres(tmdb_id, media_type):
                 timeout=5
             )
             genres = [g["name"] for g in r.json().get("genres", [])]
-        return ",".join(genres)
+            return ",".join(genres)
     except:
         return ""
 
@@ -88,17 +100,27 @@ def search():
     media_type = request.args.get("type", "movie")
 
     if media_type == "anime":
-        response = requests.get(
-            "https://api.jikan.moe/v4/anime",
-            params={"q": query, "limit": 20}
-        )
-        results = response.json().get("data", [])
+        gql = """
+        query ($search: String) {
+            Page(perPage: 20) {
+                media(search: $search, type: ANIME, sort: SEARCH_MATCH) {
+                    id
+                    title { romaji english }
+                    coverImage { medium }
+                    startDate { year }
+                    averageScore
+                }
+            }
+        }
+        """
+        data = anilist_query(gql, {"search": query})
+        results = data.get("Page", {}).get("media", [])
         media = [
             {
-                "tmdb_id": m["mal_id"],
-                "title": m["title"],
-                "poster": m["images"]["jpg"]["image_url"] if m.get("images") else None,
-                "year": str(m.get("year") or ""),
+                "tmdb_id": m["id"],
+                "title": m["title"].get("english") or m["title"].get("romaji"),
+                "poster": m.get("coverImage", {}).get("medium"),
+                "year": str(m.get("startDate", {}).get("year") or ""),
                 "media_type": "anime"
             }
             for m in results
@@ -225,19 +247,33 @@ def details():
 @app.route("/api/details/<media_type>/<int:tmdb_id>")
 def api_details(media_type, tmdb_id):
     if media_type == "anime":
-        response = requests.get(f"https://api.jikan.moe/v4/anime/{tmdb_id}/full")
-        data = response.json().get("data", {})
+        gql = """
+        query ($id: Int) {
+            Media(id: $id, type: ANIME) {
+                title { romaji english }
+                coverImage { large }
+                bannerImage
+                description(asHtml: false)
+                genres
+                averageScore
+                episodes
+                status
+                startDate { year }
+            }
+        }
+        """
+        data = anilist_query(gql, {"id": tmdb_id}).get("Media", {})
         return jsonify({
-            "title": data.get("title"),
-            "poster": data.get("images", {}).get("jpg", {}).get("large_image_url"),
-            "backdrop": None,
-            "overview": data.get("synopsis"),
-            "genres": [g["name"] for g in data.get("genres", [])],
-            "rating": data.get("score"),
+            "title": data.get("title", {}).get("english") or data.get("title", {}).get("romaji"),
+            "poster": data.get("coverImage", {}).get("large"),
+            "backdrop": data.get("bannerImage"),
+            "overview": data.get("description"),
+            "genres": data.get("genres", []),
+            "rating": round(data["averageScore"] / 10, 1) if data.get("averageScore") else None,
             "runtime": None,
             "episodes": data.get("episodes"),
             "status": data.get("status"),
-            "year": str(data.get("year") or ""),
+            "year": str(data.get("startDate", {}).get("year") or ""),
             "media_type": "anime"
         })
     else:
@@ -317,18 +353,28 @@ def search_page():
 @app.route("/api/trending/<media_type>")
 def trending(media_type):
     if media_type == "anime":
-        response = requests.get(
-            "https://api.jikan.moe/v4/top/anime",
-            params={"limit": 20}
-        )
-        results = response.json().get("data", [])
+        gql = """
+        query {
+            Page(perPage: 20) {
+                media(type: ANIME, sort: TRENDING_DESC) {
+                    id
+                    title { romaji english }
+                    coverImage { medium }
+                    startDate { year }
+                    averageScore
+                }
+            }
+        }
+        """
+        data = anilist_query(gql)
+        results = data.get("Page", {}).get("media", [])
         media = [
             {
-                "tmdb_id": m["mal_id"],
-                "title": m["title"],
-                "poster": m["images"]["jpg"]["image_url"] if m.get("images") else None,
-                "year": str(m.get("year") or ""),
-                "rating": m.get("score"),
+                "tmdb_id": m["id"],
+                "title": m["title"].get("english") or m["title"].get("romaji"),
+                "poster": m.get("coverImage", {}).get("medium"),
+                "year": str(m.get("startDate", {}).get("year") or ""),
+                "rating": round(m["averageScore"] / 10, 1) if m.get("averageScore") else None,
                 "media_type": "anime"
             }
             for m in results
@@ -394,23 +440,42 @@ def recommendations():
         media_type = r["media_type"]
 
         if media_type == "anime":
+            gql = """
+            query ($id: Int) {
+                Media(id: $id, type: ANIME) {
+                    recommendations(perPage: 8) {
+                        nodes {
+                            mediaRecommendation {
+                                id
+                                title { romaji english }
+                                coverImage { medium }
+                                startDate { year }
+                                averageScore
+                            }
+                        }
+                    }
+                }
+            }
+            """
             try:
-                resp = requests.get(f"https://api.jikan.moe/v4/anime/{tmdb_id}/recommendations", timeout=5)
-                items = resp.json().get("data", [])
-                random.shuffle(items)
-                for item in items[:8]:
-                    entry = item.get("entry", {})
-                    mid = str(entry.get("mal_id"))
+                data = anilist_query(gql, {"id": tmdb_id})
+                nodes = data.get("Media", {}).get("recommendations", {}).get("nodes", [])
+                random.shuffle(nodes)
+                for node in nodes:
+                    m = node.get("mediaRecommendation")
+                    if not m:
+                        continue
+                    mid = str(m["id"])
                     if mid in watched_ids or mid in seen_ids:
                         continue
                     seen_ids.add(mid)
                     results.append({
-                        "tmdb_id": entry.get("mal_id"),
-                        "title": entry.get("title"),
-                        "poster": entry.get("images", {}).get("jpg", {}).get("image_url"),
-                        "media_type": "anime",
-                        "year": "",
-                        "rating": None
+                        "tmdb_id": m["id"],
+                        "title": m["title"].get("english") or m["title"].get("romaji"),
+                        "poster": m.get("coverImage", {}).get("medium"),
+                        "year": str(m.get("startDate", {}).get("year") or ""),
+                        "rating": round(m["averageScore"] / 10, 1) if m.get("averageScore") else None,
+                        "media_type": "anime"
                     })
             except:
                 pass
