@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#100d18">
+  <title>{% block title %}Media Hub{% endblock %}</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700&family=Instrument+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="preconnect" href="https://image.tmdb.org">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/app.css') }}?v={{ v('css/app.css') }}">
+</head>
+<body>
+  <a class="skip" href="#main">Skip to content</a>
+
+  <header class="nav">
+    <div class="wrap">
+      <a class="brand" href="/"><span class="brand-mark" aria-hidden="true"></span>Media Hub</a>
+      <nav class="nav-links" aria-label="Main">
+        <a href="/" {% if request.path == '/' %}aria-current="page"{% endif %}>Discover</a>
+        <a href="/watchlist" {% if request.path == '/watchlist' %}aria-current="page"{% endif %}>Watchlist</a>
+        <a href="/stats" {% if request.path == '/stats' %}aria-current="page"{% endif %}>Stats</a>
+      </nav>
+    </div>
+  </header>
+
+  <main id="main">
+    {% block main %}{% endblock %}
+  </main>
+
+  <div id="toasts" role="status" aria-live="polite"></div>
+
+  <!-- One editor shared by every page. <dialog> gives us focus trapping, Esc to close
+       and a top layer for free, which also removes the old position:fixed hacks. -->
+  <dialog id="editor" aria-labelledby="ed-title">
+    <div class="ed-head">
+      <img class="thumb" id="ed-thumb" alt="" width="64" height="96">
+      <div>
+        <h2 id="ed-title"></h2>
+        <p id="ed-type"></p>
+      </div>
+      <button type="button" class="ed-close" id="ed-close" aria-label="Close">&times;</button>
+    </div>
+    <div class="ed-body">
+      <fieldset>
+        <legend>Status</legend>
+        <div class="chips" id="ed-status" role="radiogroup" aria-label="Status"></div>
+      </fieldset>
+      <fieldset>
+        <div class="row">
+          <legend>Your rating</legend>
+          <button type="button" class="btn link" id="ed-clear-rating">Clear</button>
+        </div>
+        <div class="rating" id="ed-rating" role="radiogroup" aria-label="Rating out of 10"></div>
+      </fieldset>
+      <fieldset>
+        <label class="lbl" for="ed-review">Review</label>
+        <textarea class="field" id="ed-review" maxlength="4000" placeholder="What did you think?"></textarea>
+      </fieldset>
+    </div>
+    <div class="ed-foot">
+      <button type="button" class="btn danger-text" id="ed-remove">Remove from list</button>
+      <a class="btn link" id="ed-details" href="#">Details</a>
+      <button type="button" class="btn spacer" id="ed-save">Save</button>
+    </div>
+  </dialog>
+
+  <script defer src="{{ url_for('static', filename='js/app.js') }}?v={{ v('js/app.js') }}"></script>
+  {% block scripts %}{% endblock %}
+</body>
+</html>

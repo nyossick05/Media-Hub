@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+{% block title %}Discover - Media Hub{% endblock %}
+
+{% block main %}
+<div class="wrap">
+  <div class="page-head"><h1>Find something to watch</h1></div>
+
+  <div class="searchbox" id="searchbox" role="search">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg>
+    <input id="q" type="search" placeholder="Search movies, TV shows and anime" autocomplete="off" spellcheck="false" aria-label="Search movies, TV shows and anime">
+    <span class="hint" id="hint" aria-hidden="true">/</span>
+    <button type="button" class="clear" id="clear" hidden>Clear</button>
+  </div>
+
+  <!-- Shown while a search is active -->
+  <div id="search-view" hidden>
+    <div class="toolbar"><div class="chips" id="type-filter" role="group" aria-label="Filter by type"></div></div>
+    <div id="notice"></div>
+    <div id="results" aria-live="polite"></div>
+  </div>
+
+  <!-- Shown when the box is empty -->
+  <div id="browse-view">
+    <section class="section" id="foryou" hidden>
+      <div class="section-head">
+        <h2>For you</h2>
+        <span class="count">Based on titles you rated</span>
+        <button type="button" class="btn link spacer" id="shuffle">Shuffle</button>
+      </div>
+      <div class="grid" id="foryou-grid"></div>
+    </section>
+
+    <section class="section">
+      <div class="section-head">
+        <h2>Trending this week</h2>
+        <div class="chips spacer" id="trend-tabs" role="group" aria-label="Trending type">
+          <button type="button" class="chip" data-type="movie" aria-pressed="true">Movies</button>
+          <button type="button" class="chip" data-type="tv" aria-pressed="false">TV shows</button>
+          <button type="button" class="chip" data-type="anime" aria-pressed="false">Anime</button>
+        </div>
+      </div>
+      <div class="grid" id="trend-grid"></div>
+    </section>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script defer src="{{ url_for('static', filename='js/discover.js') }}?v={{ v('js/discover.js') }}"></script>
+{% endblock %}
